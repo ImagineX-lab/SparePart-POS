@@ -1,0 +1,66 @@
+{
+  "name": "spare-parts-pos",
+  "version": "1.0.0",
+  "description": "Full-stack POS system for a spare parts shop (Express + SQLite + vanilla JS frontend), packaged as an installable Electron desktop app",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "electron": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.gearboxpos.app",
+    "productName": "Gearbox POS",
+    "copyright": "Copyright © 2026",
+    "files": [
+      "server.js",
+      "db.js",
+      "routes/**/*",
+      "public/**/*",
+      "electron/**/*",
+      "package.json",
+      "!node_modules/electron-builder/**",
+      "!node_modules/electron/**"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": "nsis",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office"
+    }
+  }
+}
