@@ -4,6 +4,7 @@ const router = express.Router();
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const upload = multer({ dest: path.join(__dirname, '..', 'data', 'images') });
 
 router.get('/settings', (req, res) => {
@@ -62,6 +63,27 @@ router.get('/dashboard', (req, res) => {
 
 router.post('/reset', (req, res) => {
   db.exec('DELETE FROM sale_items; DELETE FROM sales; DELETE FROM parts;');
+  // Remove all uploaded images from data/images
+  try {
+    const imagesDir = path.join(__dirname, '..', 'data', 'images');
+    if (fs.existsSync(imagesDir)) {
+      for (const f of fs.readdirSync(imagesDir)) {
+        // skip hidden files (like .gitkeep) and directories
+        if (!f || f.startsWith('.')) continue;
+        const p = path.join(imagesDir, f);
+        try { if (fs.lstatSync(p).isFile()) fs.unlinkSync(p); } catch (e) { /* ignore individual file errors */ }
+      }
+    }
+  } catch (e) {
+    console.error('Error clearing images directory:', e);
+  }
+
+  // Reset settings to defaults (clear shop logo and description)
+  try {
+    db.prepare('UPDATE settings SET shop_name = ?, shop_desc = NULL, currency = ?, tax_rate = ?, shop_logo = NULL WHERE id = 1')
+      .run('My Spare Parts Shop', 'Rs.', 0);
+  } catch (e) { console.error('Error resetting settings:', e); }
+
   const seed = [
     ['Brake Pad Set - Front', 'BRK-1042', 'Brakes', 18.00, 32.00, 24, 5],
     ['Brake Pad Set - Rear', 'BRK-1043', 'Brakes', 16.00, 28.00, 18, 5],
@@ -77,6 +99,51 @@ router.post('/reset', (req, res) => {
   const insert = db.prepare(`INSERT INTO parts (name, sku, category, cost, price, stock, threshold) VALUES (?,?,?,?,?,?,?)`);
   for (const p of seed) insert.run(...p);
   res.status(204).end();
+});
+
+// POST /api/backup — copies shop.db to <Desktop>/Desktop Backups/backup-YYYY-MM-DD.db
+router.post('/backup', (req, res) => {
+  try {
+    const desktopPath = path.join(os.homedir(), 'Desktop');
+    const backupDir = path.join(desktopPath, 'Desktop Backups');
+    if (!fs.existsSync(backupDir)) {
+      fs.mkdirSync(backupDir, { recursive: true });
+    }
+
+    // Resolve the live shop.db location the same way db.js does
+    let dataDir = path.join(__dirname, '..');
+    if (process.versions && process.versions.electron) {
+      try {
+        const { app } = require('electron');
+        dataDir = app.getPath('userData');
+      } catch (e) {
+        // fall back to project dir if not resolvable
+      }
+    }
+    const dbPath = path.join(dataDir, 'shop.db');
+
+    if (!fs.existsSync(dbPath)) {
+      return res.status(404).json({ error: 'Database file not found, nothing to back up' });
+    }
+
+    const now = new Date();
+    const stamp = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    let fileName = `backup-${stamp}.db`;
+    let backupPath = path.join(backupDir, fileName);
+
+    // Avoid clobbering a same-day backup — append HH-MM-SS if one already exists
+    if (fs.existsSync(backupPath)) {
+      const timeStamp = now.toTimeString().slice(0, 8).replace(/:/g, '-');
+      fileName = `backup-${stamp}_${timeStamp}.db`;
+      backupPath = path.join(backupDir, fileName);
+    }
+
+    fs.copyFileSync(dbPath, backupPath);
+    res.json({ success: true, path: backupPath, fileName });
+  } catch (e) {
+    console.error('Backup failed:', e);
+    res.status(500).json({ error: `Backup failed: ${e.message}` });
+  }
 });
 
 module.exports = router;

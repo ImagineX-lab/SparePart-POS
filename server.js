@@ -15,9 +15,10 @@ function createApp() {
   app.use('/api/parts', partsRoutes);
   app.use('/api/sales', salesRoutes);
   app.use('/api', miscRoutes); // /api/settings, /api/dashboard, /api/reset
-
   app.use(express.static(path.join(__dirname, 'public')));
-app.use('/images', express.static(path.join(__dirname, 'data', 'images')));
+  app.use('/images', express.static(path.join(__dirname, 'data', 'images'))); // kept for existing image_path values
+  app.use('/data/images', express.static(path.join(__dirname, 'data', 'images'))); // explicit route per spec
+
 
   app.use((req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

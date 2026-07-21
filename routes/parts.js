@@ -88,4 +88,17 @@ router.delete('/:id', (req, res) => {
   res.status(204).end();
 });
 
+// GET /api/parts/categories/list — distinct categories for the Add/Edit Part dropdown
+router.get('/categories/list', (req, res) => {
+  try {
+    const rows = db.prepare(
+      `SELECT DISTINCT category FROM parts WHERE category IS NOT NULL AND category != '' ORDER BY category`
+    ).all();
+    res.json(rows.map(r => r.category));
+  } catch (e) {
+    console.error('Error fetching categories:', e);
+    res.status(500).json({ error: 'Could not fetch categories' });
+  }
+});
+
 module.exports = router;

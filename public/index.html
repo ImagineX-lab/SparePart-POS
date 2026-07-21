@@ -1,174 +1,258 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gearbox POS — Spare Parts Shop</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gearbox POS — Spare Parts Shop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="app">
-  <aside id="sidebar">
-    <div class="brand">
-      <img id="sidebarLogo" class="brand-logo" src="" alt="Shop Logo" />
-      <div class="disp" id="sidebarName">⚙ <span data-i18n="appTitle">Gearbox POS</span></div>
-      <div class="tag" data-i18n="appTag">Spare parts register</div>
-    </div>
-    <nav id="navlist"></nav>
-    <div class="sidefoot" id="sidefoot"></div>
-  </aside>
-
-  <div id="main">
-    <header class="topbar">
-      <div>
-        <h1 id="pageTitle">Dashboard</h1>
-        <div class="sub" id="pageSub">Today's snapshot</div>
+  <div id="app">
+    <aside id="sidebar">
+      <div class="brand">
+        <img id="sidebarLogo" class="brand-logo" src="" alt="Shop Logo" />
+        <div class="disp" id="sidebarName">⚙ <span data-i18n="appTitle">Gearbox POS</span></div>
+        <div class="tag" data-i18n="appTag">Spare parts register</div>
       </div>
-      <div style="display:flex; gap:16px; align-items:center;">
-        <button id="langToggleBtn" class="btn btn-sm" onclick="toggleLanguage()" style="font-family: 'Inter', sans-serif;">EN / සිං</button>
-        <div class="sub mono" id="clock"></div>
-      </div>
-    </header>
-    <div class="content">
+      <nav id="navlist"></nav>
+      <div class="sidefoot" id="sidefoot"></div>
+    </aside>
 
-      <div class="view" id="view-dashboard">
-        <div class="cards" id="dashCards"></div>
-        <div class="panel">
-          <h2 data-i18n="dash_lowStock">Low stock alerts</h2>
-          <table><thead><tr><th data-i18n="dash_part">Part</th><th data-i18n="dash_sku">SKU</th><th data-i18n="dash_category">Category</th><th data-i18n="dash_stock">Stock</th><th></th></tr></thead>
-          <tbody id="lowStockBody"></tbody></table>
+    <div id="main">
+      <header class="topbar">
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <div class="sub" id="pageSub">Today's snapshot</div>
         </div>
-        <div class="panel">
-          <h2 data-i18n="dash_topSell">Top selling parts</h2>
-          <table><thead><tr><th data-i18n="dash_part">Part</th><th data-i18n="dash_sku">SKU</th><th data-i18n="dash_unitsSold">Units sold</th><th data-i18n="dash_revenue">Revenue</th></tr></thead>
-          <tbody id="topSellBody"></tbody></table>
+        <div style="display:flex; gap:16px; align-items:center;">
+          <button id="langToggleBtn" class="btn btn-sm" onclick="toggleLanguage()"
+            style="font-family: 'Inter', sans-serif;">EN / සිං</button>
+          <div class="sub mono" id="clock"></div>
         </div>
-      </div>
+      </header>
+      <div class="content">
 
-      <div class="view" id="view-pos">
-        <div class="pos-wrap">
-          <div>
-            <div class="searchbar">
-              <input id="posSearch" placeholder="Search by name, SKU, or category..." data-i18n="pos_search">
-              <select id="posCategoryFilter"><option value="" data-i18n="pos_allCat">All categories</option></select>
-            </div>
-            <div class="part-grid" id="posGrid"></div>
+        <div class="view" id="view-dashboard">
+          <div class="cards" id="dashCards"></div>
+          <div class="panel">
+            <h2 data-i18n="dash_lowStock">Low stock alerts</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="dash_part">Part</th>
+                  <th data-i18n="dash_sku">SKU</th>
+                  <th data-i18n="dash_category">Category</th>
+                  <th data-i18n="dash_stock">Stock</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="lowStockBody"></tbody>
+            </table>
           </div>
-          <div class="cart">
-            <h2 style="margin-top:0" class="disp" id="cartHeading" data-i18n="pos_currentSale">Current Sale</h2>
-            <div class="cart-items" id="cartItems"></div>
-            <div class="field-row">
-              <div class="field"><label data-i18n="pos_discountPct">Discount %</label><input id="discountPct" type="number" min="0" max="100" value="0"></div>
-              <div class="field"><label data-i18n="pos_taxPct">Tax %</label><input id="taxPct" type="number" min="0" max="100" value="0"></div>
-            </div>
-            <div class="totals-row"><span data-i18n="pos_subtotal">Subtotal</span><span class="mono" id="tSub">0.00</span></div>
-            <div class="totals-row"><span data-i18n="pos_discount">Discount</span><span class="mono" id="tDisc">0.00</span></div>
-            <div class="totals-row"><span data-i18n="pos_tax">Tax</span><span class="mono" id="tTax">0.00</span></div>
-            <div class="totals-row grand"><span data-i18n="pos_total">Total</span><span class="mono" id="tTotal">0.00</span></div>
-            <div class="field" style="margin-top:10px;">
-              <label data-i18n="pos_payMethod">Payment method</label>
-              <select id="payMethod"><option data-i18n="pos_methodCash">Cash</option><option data-i18n="pos_methodCard">Card</option><option data-i18n="pos_methodBank">Bank Transfer</option><option data-i18n="pos_methodOther">Other</option></select>
-            </div>
-            <div class="field" id="cashRow">
-              <label data-i18n="pos_amountRec">Amount received</label>
-              <input id="cashReceived" type="number" min="0" step="0.01" placeholder="0.00">
-              <div class="sub mono" id="changeDue" style="margin-top:4px;"></div>
-            </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn" style="flex:1" onclick="clearCart()" data-i18n="pos_clear">Clear</button>
-              <button class="btn btn-accent" style="flex:2" id="checkoutBtn" onclick="checkout()" data-i18n="pos_complete">Complete Sale</button>
-            </div>
+          <div class="panel">
+            <h2 data-i18n="dash_topSell">Top selling parts</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="dash_part">Part</th>
+                  <th data-i18n="dash_sku">SKU</th>
+                  <th data-i18n="dash_unitsSold">Units sold</th>
+                  <th data-i18n="dash_revenue">Revenue</th>
+                </tr>
+              </thead>
+              <tbody id="topSellBody"></tbody>
+            </table>
           </div>
         </div>
-      </div>
 
-      <div class="view" id="view-inventory">
-        <div class="panel">
-          <h2><span data-i18n="inv_title">Parts inventory</span> <button class="btn btn-accent btn-sm" onclick="openPartModal(null)" data-i18n="inv_addPart">+ Add part</button></h2>
-          <div class="searchbar" style="margin-top:10px;">
-            <input id="invSearch" placeholder="Search inventory..." data-i18n="inv_search">
+        <div class="view" id="view-pos">
+          <div class="pos-wrap">
+            <div>
+              <div class="searchbar">
+                <input id="posSearch" placeholder="Search by name, SKU, or category..." data-i18n="pos_search">
+                <select id="posCategoryFilter">
+                  <option value="" data-i18n="pos_allCat">All categories</option>
+                </select>
+              </div>
+              <div class="part-grid" id="posGrid"></div>
+            </div>
+            <div class="cart">
+              <h2 style="margin-top:0" class="disp" id="cartHeading" data-i18n="pos_currentSale">Current Sale</h2>
+              <div class="cart-items" id="cartItems"></div>
+              <div class="totals-row grand"><span data-i18n="pos_total">Total</span><span class="mono"
+                  id="tTotal">0.00</span></div>
+              <div class="field" style="margin-top:10px;">
+                <label data-i18n="pos_payMethod">Payment method</label>
+                <select id="payMethod">
+                  <option data-i18n="pos_methodCash">Cash</option>
+                  <option data-i18n="pos_methodCard">Card</option>
+                  <option data-i18n="pos_methodBank">Bank Transfer</option>
+                  <option data-i18n="pos_methodOther">Other</option>
+                </select>
+              </div>
+              <div class="field" id="cashRow">
+                <label data-i18n="pos_amountRec">Amount received</label>
+                <input id="cashReceived" type="number" min="0" step="0.01" placeholder="0.00">
+                <div class="sub mono" id="changeDue" style="margin-top:4px;"></div>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn" style="flex:1" onclick="clearCart()" data-i18n="pos_clear">Clear</button>
+                <button class="btn btn-accent" style="flex:2" id="checkoutBtn" onclick="checkout()"
+                  data-i18n="pos_complete">Complete Sale</button>
+              </div>
+            </div>
           </div>
-          <table><thead><tr><th data-i18n="dash_part">Part</th><th data-i18n="dash_sku">SKU</th><th data-i18n="dash_category">Category</th><th data-i18n="inv_cost">Cost</th><th data-i18n="inv_price">Price</th><th data-i18n="inv_stockLevel">Stock level</th><th></th></tr></thead>
-          <tbody id="invBody"></tbody></table>
         </div>
-      </div>
 
-      <div class="view" id="view-history">
-        <div class="panel">
-          <h2 data-i18n="hist_title">Sales history</h2>
-          <div class="searchbar"><input id="histSearch" placeholder="Search by receipt # or part..." data-i18n="hist_search"></div>
-          <table><thead><tr><th data-i18n="hist_receipt">Receipt</th><th data-i18n="hist_date">Date</th><th data-i18n="hist_items">Items</th><th data-i18n="hist_payment">Payment</th><th data-i18n="hist_total">Total</th><th></th></tr></thead>
-          <tbody id="histBody"></tbody></table>
+        <div class="view" id="view-inventory">
+          <div class="panel">
+            <h2><span data-i18n="inv_title">Parts inventory</span> <button class="btn btn-accent btn-sm"
+                onclick="openPartModal(null)" data-i18n="inv_addPart">+ Add part</button></h2>
+            <div class="searchbar" style="margin-top:10px;">
+              <input id="invSearch" placeholder="Search inventory..." data-i18n="inv_search">
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="dash_part">Part</th>
+                  <th data-i18n="dash_sku">SKU</th>
+                  <th data-i18n="dash_category">Category</th>
+                  <th data-i18n="inv_cost">Cost</th>
+                  <th data-i18n="inv_price">Price</th>
+                  <th data-i18n="inv_stockLevel">Stock level</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="invBody"></tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <div class="view" id="view-settings">
-        <div class="panel" style="max-width:480px;">
-          <h2 data-i18n="set_title">Shop settings</h2>
-          <div class="field"><label data-i18n="set_shopName">Shop name</label><input id="setShopName" type="text"></div>
-          <div class="field"><label data-i18n="set_shopDesc">Shop description</label><textarea id="setShopDesc" rows="3" style="width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:var(--panel); font-family:inherit;"></textarea></div>
-          <div class="field"><label data-i18n="set_shopLogo">Shop logo</label><input id="setShopLogo" type="file" accept="image/*"></div>
-          <div id="setShopLogoPreview" style="margin-bottom:12px;"></div>
-          <div class="field"><label data-i18n="set_currency">Currency symbol</label><input id="setCurrency" type="text"></div>
-          <div class="field"><label data-i18n="set_tax">Default tax rate %</label><input id="setTax" type="number" min="0" max="100"></div>
-          <button class="btn btn-accent" onclick="saveSettings()" data-i18n="set_save">Save settings</button>
+        <div class="view" id="view-history">
+          <div class="panel">
+            <h2 data-i18n="hist_title">Sales history</h2>
+            <div class="searchbar"><input id="histSearch" placeholder="Search by receipt # or part..."
+                data-i18n="hist_search"></div>
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="hist_receipt">Receipt</th>
+                  <th data-i18n="hist_date">Date</th>
+                  <th data-i18n="hist_items">Items</th>
+                  <th data-i18n="hist_payment">Payment</th>
+                  <th data-i18n="hist_total">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="histBody"></tbody>
+            </table>
+          </div>
         </div>
-        <div class="panel" style="max-width:480px;">
-          <h2 data-i18n="set_dataTitle">Data</h2>
-          <p class="sub" style="margin-top:0;" data-i18n="set_dataDesc">This resets all parts and sales on the server. Cannot be undone.</p>
-          <button class="btn btn-danger" onclick="resetAllData()" data-i18n="set_resetBtn">Reset all data</button>
-        </div>
-      </div>
 
+        <div class="view" id="view-settings">
+          <div class="panel" style="max-width:480px;">
+            <h2 data-i18n="set_title">Shop settings</h2>
+            <div class="field"><label data-i18n="set_shopName">Shop name</label><input id="setShopName" type="text">
+            </div>
+            <div class="field"><label data-i18n="set_shopDesc">Shop description</label><textarea id="setShopDesc"
+                rows="3"
+                style="width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:var(--panel); font-family:inherit;"></textarea>
+            </div>
+            <div class="field"><label data-i18n="set_shopLogo">Shop logo</label><input id="setShopLogo" type="file"
+                accept="image/*"></div>
+            <div id="setShopLogoPreview" style="margin-bottom:12px;"></div>
+            <div class="field"><label data-i18n="set_currency">Currency symbol</label><input id="setCurrency"
+                type="text"></div>
+            <div class="field"><label data-i18n="set_tax">Default tax rate %</label><input id="setTax" type="number"
+                min="0" max="100"></div>
+            <button class="btn btn-accent" onclick="saveSettings()" data-i18n="set_save">Save settings</button>
+          </div>
+          <div class="panel" style="max-width:480px;">
+            <h2 data-i18n="set_dataTitle">Data</h2>
+            <p class="sub" style="margin-top:0;" data-i18n="set_dataDesc">This resets all parts and sales on the server.
+              Cannot be undone.</p>
+            <button class="btn btn-danger" onclick="resetAllData()" data-i18n="set_resetBtn">Reset all data</button>
+          </div>
+          <div class="panel" style="max-width:480px;">
+            <h2>ඩේටා බැකප් (Backup)</h2>
+            <p class="sub" style="margin-top:0;">
+              Saves a safety copy of your shop data to a "Desktop Backups" folder on this computer's Desktop.
+            </p>
+            <button class="btn btn-accent" id="backupBtn" style="width:100%; padding:16px; font-size:16px;"
+              onclick="createBackup()">
+              සුරැකුම් පිටපතක් සාදන්න (Create Backup)
+            </button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
-</div>
 
-<div class="modal-bg" id="partModalBg">
-  <div class="modal">
-    <h3 id="partModalTitle" data-i18n="modal_addPart">Add part</h3>
-    <input type="hidden" id="partId">
-    <div class="field"><label data-i18n="modal_partName">Part name</label><input id="partName" type="text" placeholder="e.g. Brake Pad Set - Front" data-i18n="modal_partNamePlaceholder"></div>
-    <div class="field-row">
-      <div class="field"><label data-i18n="modal_sku">SKU / part no.</label><input id="partSku" type="text" placeholder="BRK-1042"></div>
-      <div class="field"><label data-i18n="modal_category">Category</label><input id="partCategory" list="catList" type="text" placeholder="Brakes"><datalist id="catList"></datalist></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label data-i18n="modal_cost">Cost price</label><input id="partCost" type="number" min="0" step="0.01"></div>
-      <div class="field"><label data-i18n="modal_price">Selling price</label><input id="partPrice" type="number" min="0" step="0.01"></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label data-i18n="modal_stock">Stock quantity</label><input id="partStock" type="number" min="0" step="1"></div>
-      <div class="field"><label data-i18n="modal_threshold">Low stock threshold</label><input id="partThreshold" type="number" min="0" step="1"></div>
-    </div>
-    <div class="modal-actions">
-      <div class="field">
-        <label data-i18n="modal_image">Image</label>
-        <input type="file" id="partImage" accept="image/*">
+  <div class="modal-bg" id="partModalBg">
+    <div class="modal">
+      <h3 id="partModalTitle" data-i18n="modal_addPart">Add part</h3>
+      <input type="hidden" id="partId">
+      <div class="field"><label data-i18n="modal_partName">Part name</label><input id="partName" type="text"
+          placeholder="e.g. Brake Pad Set - Front" data-i18n="modal_partNamePlaceholder"></div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="modal_sku">SKU / part no.</label><input id="partSku" type="text"
+            placeholder="BRK-1042"></div>
+        <div class="field">
+          <label data-i18n="modal_category">Category</label>
+          <select id="partCategorySelect" onchange="onCategorySelectChange()"></select>
+        </div>
       </div>
-      <button class="btn" onclick="closeModal('partModalBg')" data-i18n="modal_cancel">Cancel</button>
-      <button class="btn btn-accent" onclick="savePart()" id="btnSavePart" data-i18n="modal_savePart">Save part</button>
+      <div class="field" id="newCategoryRow" style="display:none;">
+        <label>New category name</label>
+        <input id="partCategoryNew" type="text" placeholder="e.g. Brakes">
+      </div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="modal_cost">Cost price</label><input id="partCost" type="number" min="0"
+            step="0.01"></div>
+        <div class="field"><label data-i18n="modal_price">Selling price</label><input id="partPrice" type="number"
+            min="0" step="0.01"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label data-i18n="modal_stock">Stock quantity</label><input id="partStock" type="number"
+            min="0" step="1"></div>
+        <div class="field"><label data-i18n="modal_threshold">Low stock threshold</label><input id="partThreshold"
+            type="number" min="0" step="1"></div>
+      </div>
+      <div class="modal-actions">
+        <div class="field">
+          <label data-i18n="modal_image">Image</label>
+          <input type="file" id="partImage" accept="image/*">
+        </div>
+        <button class="btn" onclick="closeModal('partModalBg')" data-i18n="modal_cancel">Cancel</button>
+        <button class="btn btn-accent" onclick="savePart()" id="btnSavePart" data-i18n="modal_savePart">Save
+          part</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="modal-bg" id="receiptModalBg">
-  <div class="modal">
-    <div id="print-area" class="receipt"></div>
-    <div class="modal-actions" style="margin-top:14px;">
-      <button class="btn" onclick="closeModal('receiptModalBg')" data-i18n="modal_close">Close</button>
-      <button class="btn btn-accent" onclick="window.print()" data-i18n="modal_print">Print</button>
+  <div class="modal-bg" id="receiptModalBg">
+    <div class="modal">
+      <div id="print-area" class="receipt"></div>
+      <div class="modal-actions" style="margin-top:14px;">
+        <button class="btn" onclick="closeModal('receiptModalBg')" data-i18n="modal_close">Close</button>
+        <button class="btn btn-accent" onclick="window.print()" data-i18n="modal_print">Print</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="toast" id="toast"></div>
+  <div class="toast" id="toast"></div>
 
-<script src="i18n.js"></script>
-<script src="app.js"></script>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
 </body>
+
 </html>

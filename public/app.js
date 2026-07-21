@@ -6,7 +6,7 @@ async function api(path, options = {}) {
   });
   if (!res.ok) {
     let msg = 'Request failed';
-    try { msg = (await res.json()).error || msg; } catch (e) {}
+    try { msg = (await res.json()).error || msg; } catch (e) { }
     throw new Error(msg);
   }
   if (res.status === 204) return null;
@@ -21,7 +21,7 @@ async function apiFormData(path, options = {}) {
   });
   if (!res.ok) {
     let msg = 'Request failed';
-    try { msg = (await res.json()).error || msg; } catch (e) {}
+    try { msg = (await res.json()).error || msg; } catch (e) { }
     throw new Error(msg);
   }
   if (res.status === 204) return null;
@@ -71,15 +71,15 @@ function gaugeHtml(part) {
 
 /* ---------- NAV ---------- */
 const NAV = [
-  { id: 'dashboard', label: 'Dashboard', ic: '▣', sub: "Today's snapshot" },
-  { id: 'pos', label: 'New Sale', ic: '🛒', sub: 'Ring up a sale' },
-  { id: 'inventory', label: 'Inventory', ic: '▤', sub: 'Manage your parts catalog' },
-  { id: 'history', label: 'Sales History', ic: '≡', sub: 'Past transactions' },
-  { id: 'settings', label: 'Settings', ic: '⚙', sub: 'Shop configuration' }
+  { id: 'dashboard', label: '🏠 මුල් පිටුව', sub: "Today's snapshot" },
+  { id: 'pos', label: '🛍️ විකුණුම්', sub: 'Ring up a sale' },
+  { id: 'inventory', label: '📦 තොග', sub: 'Manage your parts catalog' },
+  { id: 'history', label: '🧾 බිල්', sub: 'Past transactions' },
+  { id: 'settings', label: '⚙️ සැකසුම්', sub: 'Shop configuration' }
 ];
 function renderNav() {
   document.getElementById('navlist').innerHTML = NAV.map(n =>
-    `<button class="navbtn" id="nav-${n.id}" onclick="switchView('${n.id}')"><span class="ic">${n.ic}</span>${t('nav_' + n.id)}</button>`
+    `<button class="navbtn navbtn-lg" id="nav-${n.id}" onclick="switchView('${n.id}')">${n.label}</button>`
   ).join('');
 }
 async function switchView(id) {
@@ -88,8 +88,8 @@ async function switchView(id) {
   document.querySelectorAll('.navbtn').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-' + id).classList.add('active');
   const meta = NAV.find(n => n.id === id);
-  document.getElementById('pageTitle').textContent = t('nav_' + meta.id);
-  document.getElementById('pageSub').textContent = t('sub_' + meta.id);
+  document.getElementById('pageTitle').textContent = meta.label;
+  document.getElementById('pageSub').textContent = meta.sub;
   if (id === 'dashboard') await renderDashboard();
   if (id === 'pos') await renderPOS();
   if (id === 'inventory') await renderInventory();
@@ -136,7 +136,6 @@ function renderCategoryOptions() {
 async function renderPOS() {
   await Promise.all([refreshParts(), refreshSettings()]);
   renderCategoryOptions();
-  document.getElementById('taxPct').value = settings.tax_rate || 0;
   renderPosGrid();
   renderCart();
 }
@@ -149,14 +148,21 @@ function renderPosGrid() {
     const matchC = !cat || p.category === cat;
     return matchQ && matchC;
   });
-  grid.innerHTML = list.length ? list.map(p => `
+  grid.innerHTML = list.length ? list.map(p => {
+    const fileName = p.image_path ? p.image_path.split('/').pop() : '';
+    const imgBlock = fileName
+      ? `<img src="/data/images/${esc(fileName)}" class="pos-thumb" alt="${esc(p.name)}"
+           onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'pos-thumb-placeholder',textContent:'No image'}))">`
+      : `<div class="pos-thumb-placeholder">No image</div>`;
+    return `
     <div class="part-card ${p.stock <= 0 ? 'oos' : ''}" onclick="${p.stock > 0 ? `addToCart(${p.id})` : ''}">
+      ${imgBlock}
       <div class="sku mono">${esc(p.sku)}</div>
       <div class="name">${esc(p.name)}</div>
       <div class="price">${fmt(p.price)}</div>
       <div class="stockline">${p.stock <= 0 ? 'Out of stock' : p.stock + ' in stock'}</div>
-    </div>
-  `).join('') : `<div class="empty">No parts match your search.</div>`;
+    </div>`;
+  }).join('') : `<div class="empty">No parts match your search.</div>`;
 }
 function addToCart(partId) {
   const part = partsCache.find(p => p.id === partId);
@@ -191,12 +197,8 @@ function cartTotals() {
     const p = partsCache.find(x => x.id === c.partId);
     return a + (p ? p.price * c.qty : 0);
   }, 0);
-  const discPct = parseFloat(document.getElementById('discountPct').value) || 0;
-  const taxPct = parseFloat(document.getElementById('taxPct').value) || 0;
-  const discount = subtotal * (discPct / 100);
-  const taxed = (subtotal - discount) * (taxPct / 100);
-  const total = subtotal - discount + taxed;
-  return { subtotal, discount, tax: taxed, total };
+  // Subtotal IS the total now — no discount/tax math, nothing sent to the backend for them.
+  return { subtotal, discount: 0, tax: 0, total: subtotal };
 }
 function renderCart() {
   const box = document.getElementById('cartItems');
@@ -219,9 +221,6 @@ function renderCart() {
   }).join('') : `<div class="empty">Cart is empty. Tap a part to add it.</div>`;
 
   const t = cartTotals();
-  document.getElementById('tSub').textContent = fmt(t.subtotal);
-  document.getElementById('tDisc').textContent = '-' + fmt(t.discount);
-  document.getElementById('tTax').textContent = fmt(t.tax);
   document.getElementById('tTotal').textContent = fmt(t.total);
   updateChange();
 }
@@ -249,10 +248,9 @@ async function checkout() {
     const sale = await api('/sales', {
       method: 'POST',
       body: JSON.stringify({
-
         items: cart.map(c => ({ partId: c.partId, qty: c.qty })),
-        discount: t.discount,
-        tax: t.tax,
+        discount: 0,
+        tax: 0,
         paymentMethod: method,
         amountReceived: received
       })
@@ -260,7 +258,6 @@ async function checkout() {
     showReceipt(sale);
     await switchView('history');
     clearCart();
-    document.getElementById('discountPct').value = 0;
     await refreshParts();
     renderPosGrid();
   } catch (e) {
@@ -350,6 +347,101 @@ async function deletePart(id) {
   }
 }
 
+async function populateCategorySelect() {
+  let categories = [];
+  try {
+    categories = await api('/parts/categories/list');
+  } catch (e) {
+    categories = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
+  }
+  const sel = document.getElementById('partCategorySelect');
+  sel.innerHTML = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
+    + `<option value="__new__">+ Add new category…</option>`;
+}
+
+function setCategorySelectValue(category) {
+  const sel = document.getElementById('partCategorySelect');
+  const exists = Array.from(sel.options).some(o => o.value === category);
+  const newRow = document.getElementById('newCategoryRow');
+  if (exists) {
+    sel.value = category;
+    newRow.style.display = 'none';
+  } else {
+    sel.value = '__new__';
+    newRow.style.display = 'block';
+    document.getElementById('partCategoryNew').value = category;
+  }
+}
+
+function onCategorySelectChange() {
+  const sel = document.getElementById('partCategorySelect');
+  document.getElementById('newCategoryRow').style.display = sel.value === '__new__' ? 'block' : 'none';
+}
+
+function getSelectedCategory() {
+  const sel = document.getElementById('partCategorySelect');
+  if (sel.value === '__new__') {
+    return document.getElementById('partCategoryNew').value.trim();
+  }
+  return sel.value;
+}
+
+async function openPartModal(id) {
+  document.getElementById('partId').value = id || '';
+  document.getElementById('partModalTitle').textContent = id ? 'Edit Part' : 'Add Part';
+  await populateCategorySelect();
+  if (id) {
+    const p = partsCache.find(x => x.id === id);
+    document.getElementById('partName').value = p.name;
+    document.getElementById('partSku').value = p.sku;
+    setCategorySelectValue(p.category || '');
+    document.getElementById('partCost').value = p.cost;
+    document.getElementById('partPrice').value = p.price;
+    document.getElementById('partStock').value = p.stock;
+    document.getElementById('partThreshold').value = p.threshold;
+    document.getElementById('partImage').value = '';
+  } else {
+    ['partName', 'partSku', 'partCost', 'partPrice', 'partStock', 'partThreshold', 'partImage']
+      .forEach(i => document.getElementById(i).value = '');
+    document.getElementById('partThreshold').value = 5;
+    document.getElementById('partCategorySelect').value = '';
+    document.getElementById('newCategoryRow').style.display = 'none';
+    document.getElementById('partCategoryNew').value = '';
+  }
+  openModal('partModalBg');
+}
+
+async function savePart() {
+  const id = document.getElementById('partId').value;
+  const formData = new FormData();
+  formData.append('name', document.getElementById('partName').value.trim());
+  formData.append('sku', document.getElementById('partSku').value.trim());
+  formData.append('category', getSelectedCategory() || 'Other');
+  formData.append('cost', document.getElementById('partCost').value || 0);
+  formData.append('price', document.getElementById('partPrice').value || 0);
+  formData.append('stock', document.getElementById('partStock').value || 0);
+  formData.append('threshold', document.getElementById('partThreshold').value || 0);
+  const imgFile = document.getElementById('partImage').files[0];
+  if (imgFile) formData.append('image', imgFile);
+  if (!formData.get('name') || !formData.get('sku')) { showToast('Part name and SKU are required.'); return; }
+  try {
+    if (id) await apiFormData('/parts/' + id, { method: 'PUT', body: formData });
+    else await apiFormData('/parts', { method: 'POST', body: formData });
+    closeModal('partModalBg');
+    await renderInventory();
+    showToast('Part saved.');
+  } catch (e) { showToast(e.message); }
+}
+
+function renderCategoryOptions() {
+  const cats = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
+  const sel = document.getElementById('posCategoryFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">' + t('pos_allCat') + '</option>'
+    + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  sel.value = cur;
+}
+
 /* ---------- HISTORY ---------- */
 let salesCache = [];
 async function renderHistory() {
@@ -416,7 +508,7 @@ function renderSettingsForm() {
   document.getElementById('setShopDesc').value = settings.shop_desc || '';
   document.getElementById('setCurrency').value = settings.currency || '';
   document.getElementById('setTax').value = settings.tax_rate || 0;
-  
+
   const preview = document.getElementById('setShopLogoPreview');
   preview.innerHTML = settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" style="max-height:80px; border-radius:4px;" />` : '';
   document.getElementById('setShopLogo').value = '';
@@ -427,7 +519,7 @@ async function saveSettings() {
   formData.append('shop_desc', document.getElementById('setShopDesc').value.trim());
   formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
   formData.append('tax_rate', document.getElementById('setTax').value || 0);
-  
+
   const logoFile = document.getElementById('setShopLogo').files[0];
   if (logoFile) formData.append('logo', logoFile);
 
@@ -444,6 +536,18 @@ async function resetAllData() {
   showToast('All data has been reset.');
   await switchView('dashboard');
 }
+async function createBackup() {
+  const btn = document.getElementById('backupBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const result = await api('/backup', { method: 'POST' });
+    showToast('Backup saved: ' + result.fileName);
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
 
 /* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
@@ -452,7 +556,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
   document.getElementById('sidefoot').textContent = settings.shop_name || 'Gearbox POS';
-  
+
   const sidebarName = document.getElementById('sidebarName');
   if (sidebarName) {
     if (settings.shop_name && settings.shop_name !== 'My Spare Parts Shop') {
@@ -461,7 +565,7 @@ function updateShopUI() {
       sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : 'Gearbox POS'}</span>`;
     }
   }
-  
+
   const sidebarLogo = document.getElementById('sidebarLogo');
   if (sidebarLogo) {
     if (settings.shop_logo) {
@@ -482,8 +586,6 @@ function tickClock() {
 function bindEvents() {
   document.getElementById('posSearch').addEventListener('input', renderPosGrid);
   document.getElementById('posCategoryFilter').addEventListener('change', renderPosGrid);
-  document.getElementById('discountPct').addEventListener('input', renderCart);
-  document.getElementById('taxPct').addEventListener('input', renderCart);
   document.getElementById('payMethod').addEventListener('change', updateChange);
   document.getElementById('cashReceived').addEventListener('input', updateChange);
   document.getElementById('invSearch').addEventListener('input', filterInventory);
