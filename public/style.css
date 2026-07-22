@@ -91,7 +91,7 @@ tr:last-child td{border-bottom:none;}
 .searchbar input{flex:1;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:var(--panel);}
 select, .field input{padding:9px 11px;border:1px solid var(--line);border-radius:8px;font-size:14px;background:var(--panel);width:100%;}
 
-.pos-wrap{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start;}
+.pos-wrap{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start;margin-top:24px;}
 .part-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:calc(100vh - 260px);overflow-y:auto;padding-right:4px;}
 .part-card{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:12px;cursor:pointer;transition:border-color .1s,transform .06s;}
 .part-card:hover{border-color:var(--accent);}

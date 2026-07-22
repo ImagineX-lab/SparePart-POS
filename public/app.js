@@ -105,6 +105,21 @@ async function refreshSettings() { settings = await api('/settings'); }
 /* ---------- DASHBOARD ---------- */
 async function renderDashboard() {
   const d = await api('/dashboard');
+  
+  const notifArea = document.getElementById('dashNotificationArea');
+  if (d.lowStockCount > 0) {
+    const itemNames = d.lowStock.map(p => esc(p.name)).join(', ');
+    notifArea.innerHTML = `<div style="background: var(--warn-bg); color: var(--warn); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--warn); margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; font-weight: 600;">
+      <span style="font-size: 18px; line-height: 1.2;">⚠️</span>
+      <div>
+        <div>${d.lowStockCount} item(s) are at or below the low stock threshold! Please restock. (අයිතම ${d.lowStockCount} ක් අවම තොග සීමාවට පැමිණ ඇත)</div>
+        <div style="font-size: 12.5px; font-weight: 400; margin-top: 4px; color: var(--accent-ink);"><strong>Items (අයිතම):</strong> ${itemNames}</div>
+      </div>
+    </div>`;
+  } else {
+    notifArea.innerHTML = '';
+  }
+
   document.getElementById('dashCards').innerHTML = `
     <div class="stat"><div class="label">${t('dash_todayRev')}</div><div class="value accent">${fmt(d.revenueToday)}</div></div>
     <div class="stat"><div class="label">${t('dash_todaySales')}</div><div class="value">${d.salesToday}</div></div>
