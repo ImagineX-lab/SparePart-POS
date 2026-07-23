@@ -56,6 +56,14 @@ function showToast(msg) {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
+function formatShopName(name){
+  const s = String(name || '');
+  if(!s) return '';
+  // take first two characters as initials and wrap them for special styling
+  const firstTwo = esc(s.slice(0,2));
+  const rest = esc(s.slice(2));
+  return `<span class="r-shop-initials">${firstTwo}</span><span class="r-shop-rest">${rest}</span>`;
+}
 function stockZone(part) {
   if (part.stock <= part.threshold) return 'bad';
   if (part.stock <= part.threshold * 2) return 'warn';
@@ -493,34 +501,36 @@ function showReceipt(sale) {
     const rate = amountParts(i.price);
     const total = amountParts(i.price * i.qty);
     return `
-      <div class="r-item-row">
-        <span class="r-item-qty">${i.qty}</span>
-        <span class="r-item-name">${esc(i.name)}</span>
-        <span class="r-item-rate">${rate.whole}.${rate.fraction}</span>
-        <span class="r-item-total-rs">${total.whole}</span>
-        <span class="r-item-total-cts">${total.fraction}</span>
-      </div>`;
+      <tr class="r-item-row">
+        <td class="r-item-name">${esc(i.name)}</td>
+        <td class="r-item-qty">${i.qty}</td>
+        <td class="r-item-rate">${rate.whole}.${rate.fraction}</td>
+        <td class="r-item-total-rs">${total.whole}</td>
+        <td class="r-item-total-cts">${total.fraction}</td>
+      </tr>`;
   }).join('');
   const subtotal = amountParts(sale.subtotal);
   const discount = amountParts(sale.discount);
   const tax = amountParts(sale.tax);
   const total = amountParts(sale.total);
-  const watermarkUrl = settings.shop_logo ? `style="background-image:url('/${esc(settings.shop_logo)}')"` : '';
   const html = `
     <div class="receipt invoice">
-      ${settings.shop_logo ? `<div class="r-watermark" ${watermarkUrl}></div><img src="/${esc(settings.shop_logo)}" class="r-shop-logo" />` : ''}
-      <div class="r-shop-name">${esc(settings.shop_name)}</div>
+      ${settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" class="r-watermark" alt="Watermark" /><img src="/${esc(settings.shop_logo)}" class="r-shop-logo" />` : ''}
+      <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
       <div class="r-address">
         <div class="r-address-left">
-          <div>මහියංගනය පාර,</div>
-          <div>බිම්පුස්ස,</div>
-          <div>තෙල්දෙනිය.</div>
+          <div class="r-address-row"><span class="r-address-icon location"></span><span>මහියංගනය පාර, බිම්පුස්ස, තෙල්දෙනිය.</span></div>
         </div>
         <div class="r-address-right">
-          <div>Tel - 076 7694380</div>
-          <div>077 6840860</div>
+          <div class="r-address-row">
+            <span class="r-address-icon phone"></span>
+            <div class="r-address-phone-list">
+              <div>076 7694380</div>
+              <div>077 6840860</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="r-meta-row">
@@ -532,22 +542,27 @@ function showReceipt(sale) {
         <span class="r-meta-value">${new Date(sale.date).toLocaleString()}</span>
       </div>
       <div class="r-divider-thick"></div>
-      <div class="r-items-head">
-        <span class="r-item-qty">Qty</span>
-        <span class="r-item-name">Description</span>
-        <span class="r-item-rate">Rate</span>
-        <span class="r-item-total-rs">Rs.</span>
-        <span class="r-item-total-cts">Cts.</span>
-      </div>
-      ${itemsHtml}
+      <table class="r-items-table">
+        <thead>
+          <tr class="r-items-head">
+            <th class="r-item-name">Description</th>
+            <th class="r-item-qty">Qty</th>
+            <th class="r-item-rate">Rate</th>
+            <th class="r-item-total-rs">Rs.</th>
+            <th class="r-item-total-cts">Cts.</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsHtml}
+        </tbody>
+      </table>
       <div class="r-divider-dashed"></div>
       <div class="r-totals-row"><span>Subtotal</span><span>${subtotal.whole}.${subtotal.fraction}</span></div>
-      <div class="r-totals-row"><span>Discount</span><span>-${discount.whole}.${discount.fraction}</span></div>
-      <div class="r-totals-row"><span>Tax</span><span>${tax.whole}.${tax.fraction}</span></div>
       <div class="r-totals-row grand"><span>Total</span><span>${total.whole}.${total.fraction}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
+      <div class="r-disclaimer">අලෙවි කරන ලද වාහන විදුලි උපාංග නැවත භාරගනු නොලැබේ.</div>
       <div class="r-thank-you">Thank you for your business.</div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
