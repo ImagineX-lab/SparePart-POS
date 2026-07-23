@@ -40,6 +40,12 @@ let cart = []; // {partId, qty}
 function fmt(n) {
   return settings.currency + ' ' + (Math.round((n || 0) * 100) / 100).toFixed(2);
 }
+function amountParts(n) {
+  const cents = Math.round((n || 0) * 100);
+  const whole = Math.floor(Math.abs(cents) / 100);
+  const fraction = String(Math.abs(cents) % 100).padStart(2, '0');
+  return { whole: (cents < 0 ? '-' : '') + whole, fraction };
+}
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -482,34 +488,67 @@ function filterHistory() {
   }).join('') : `<tr><td colspan="6" class="empty">No sales yet. Completed sales will appear here.</td></tr>`;
 }
 function showReceipt(sale) {
+  const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
+  const itemsHtml = sale.items.map(i => {
+    const rate = amountParts(i.price);
+    const total = amountParts(i.price * i.qty);
+    return `
+      <div class="r-item-row">
+        <span class="r-item-qty">${i.qty}</span>
+        <span class="r-item-name">${esc(i.name)}</span>
+        <span class="r-item-rate">${rate.whole}.${rate.fraction}</span>
+        <span class="r-item-total-rs">${total.whole}</span>
+        <span class="r-item-total-cts">${total.fraction}</span>
+      </div>`;
+  }).join('');
+  const subtotal = amountParts(sale.subtotal);
+  const discount = amountParts(sale.discount);
+  const tax = amountParts(sale.tax);
+  const total = amountParts(sale.total);
+  const watermarkUrl = settings.shop_logo ? `style="background-image:url('/${esc(settings.shop_logo)}')"` : '';
   const html = `
-    <div class="receipt">
-      ${settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" class="r-shop-logo" />` : ''}
+    <div class="receipt invoice">
+      ${settings.shop_logo ? `<div class="r-watermark" ${watermarkUrl}></div><img src="/${esc(settings.shop_logo)}" class="r-shop-logo" />` : ''}
       <div class="r-shop-name">${esc(settings.shop_name)}</div>
-      ${settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : ''}
-      <div class="r-shop-tag">Spare Parts Shop</div>
-      <div class="r-receipt-meta">
-        <span>Receipt #${String(sale.id).padStart(4, '0')}</span>
-        <span>${new Date(sale.date).toLocaleString()}</span>
+      ${shopDesc}
+      <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
+      <div class="r-address">
+        <div class="r-address-left">
+          <div>මහියංගනය පාර,</div>
+          <div>බිම්පුස්ස,</div>
+          <div>තෙල්දෙනිය.</div>
+        </div>
+        <div class="r-address-right">
+          <div>Tel - 076 7694380</div>
+          <div>077 6840860</div>
+        </div>
+      </div>
+      <div class="r-meta-row">
+        <span class="r-meta-label">Bill No</span>
+        <span class="r-meta-value">${String(sale.id).padStart(4, '0')}</span>
+      </div>
+      <div class="r-meta-row">
+        <span class="r-meta-label">Date</span>
+        <span class="r-meta-value">${new Date(sale.date).toLocaleString()}</span>
       </div>
       <div class="r-divider-thick"></div>
-      <div class="r-section-head">Items</div>
-      ${sale.items.map(i => `
-        <div class="r-item-row">
-          <div class="r-item-name">${esc(i.name)} x${i.qty}</div>
-          <div class="r-item-detail"><span>${fmt(i.price * i.qty)}</span><span>${esc(i.sku)} @ ${fmt(i.price)}</span></div>
-        </div>`).join('')}
+      <div class="r-items-head">
+        <span class="r-item-qty">Qty</span>
+        <span class="r-item-name">Description</span>
+        <span class="r-item-rate">Rate</span>
+        <span class="r-item-total-rs">Rs.</span>
+        <span class="r-item-total-cts">Cts.</span>
+      </div>
+      ${itemsHtml}
       <div class="r-divider-dashed"></div>
-      <div class="r-totals-row"><span>Subtotal</span><span>${fmt(sale.subtotal)}</span></div>
-      <div class="r-totals-row"><span>Discount</span><span>-${fmt(sale.discount)}</span></div>
-      <div class="r-totals-row"><span>Tax</span><span>${fmt(sale.tax)}</span></div>
-      <div class="r-totals-row grand"><span>Total</span><span>${fmt(sale.total)}</span></div>
+      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal.whole}.${subtotal.fraction}</span></div>
+      <div class="r-totals-row"><span>Discount</span><span>-${discount.whole}.${discount.fraction}</span></div>
+      <div class="r-totals-row"><span>Tax</span><span>${tax.whole}.${tax.fraction}</span></div>
+      <div class="r-totals-row grand"><span>Total</span><span>${total.whole}.${total.fraction}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
       <div class="r-thank-you">Thank you for your business.</div>
-      <div class="r-footer-note">Visit us again!</div>
-      <button class="btn btn-ghost" style="margin-top:8px;" onclick="window.print()">Print</button>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
   openModal('receiptModalBg');
