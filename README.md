@@ -1,4 +1,4 @@
-# Gearbox POS — Full-Stack Spare Parts POS System
+# POS System — Full-Stack Spare Parts POS System
 
 A complete point-of-sale system for a spare parts shop: Express + SQLite backend,
 vanilla JS frontend. Because the data lives on the server (not in the browser),
