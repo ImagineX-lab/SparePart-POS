@@ -224,6 +224,10 @@ function toggleLanguage() {
   const btn = document.getElementById('langToggleBtn');
   if (btn) btn.textContent = currentLang === 'en' ? 'EN / සිං' : 'සිං / EN';
 
+  // preserve amount entered in the POS cash field when switching language
+  const cashEl = document.getElementById('cashReceived');
+  const cashVal = cashEl ? cashEl.value : null;
+
   updateDOMTranslations();
   
   if (typeof renderNav === 'function') renderNav();
@@ -232,6 +236,12 @@ function toggleLanguage() {
   if (activeView) {
     const id = activeView.id.replace('view-', '');
     if (typeof switchView === 'function') switchView(id);
+  }
+
+  // restore preserved cash amount (if any)
+  if (cashEl && cashVal !== null) {
+    // small timeout to ensure view rendering finished
+    setTimeout(() => { try { cashEl.value = cashVal; updateChange(); } catch (e) {} }, 50);
   }
 }
 

@@ -11,6 +11,8 @@
     href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Pacifico&family=Old+Standard+TT:wght@400;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.267.0/dist/lucide.min.js"></script>
 </head>
 
 <body>
@@ -22,6 +24,7 @@
         <div class="disp" id="sidebarName">⚙ <span data-i18n="appTitle">Gearbox POS</span></div>
         <div class="tag" data-i18n="appTag">Spare parts register</div>
       </div>
+      <!-- sidebar notification removed per request -->
       <nav id="navlist"></nav>
       <div class="sidefoot" id="sidefoot"></div>
     </aside>
@@ -32,9 +35,18 @@
           <h1 id="pageTitle">Dashboard</h1>
           <div class="sub" id="pageSub">Today's snapshot</div>
         </div>
-        <div style="display:flex; gap:16px; align-items:center;">
-          <button id="langToggleBtn" class="btn btn-sm" onclick="toggleLanguage()"
-            style="font-family: 'Inter', sans-serif;">EN / සිං</button>
+        <div style="display:flex; gap:12px; align-items:center;">
+          <div>
+            <button id="topNotifBtn" class="icon-btn" title="Notifications">
+              <i data-lucide="bell"></i>
+              <span id="topNotifCount" class="side-badge" style="display:none">0</span>
+            </button>
+          </div>
+          <button id="langToggleBtn" class="btn btn-sm" onclick="toggleLanguage()">EN / සිං</button>
+          
+          <div class="profile-wrap">
+            <img id="profileAvatar" src="/" alt="Profile" onerror="this.style.display='none'">
+          </div>
           <div class="sub mono" id="clock"></div>
         </div>
       </header>
@@ -101,7 +113,7 @@
               </div>
               <div class="field" id="cashRow">
                 <label data-i18n="pos_amountRec">Amount received</label>
-                <input id="cashReceived" type="number" min="0" step="0.01" placeholder="0.00">
+                <input id="cashReceived" data-i18n="pos_amountRec" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
                 <div class="sub mono" id="changeDue" style="margin-top:4px;"></div>
               </div>
               <div style="display:flex;gap:8px;">
@@ -254,6 +266,17 @@
 
   <script src="i18n.js"></script>
   <script src="app.js"></script>
+  <script>
+    // replace lucide icons after DOM loads
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) try { lucide.replace(); } catch(e){}
+      // attach notification bell handlers
+      const topBtn = document.getElementById('topNotifBtn');
+      if(topBtn) topBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); showLowStockPanel(ev); });
+      // close panel when clicking elsewhere
+      document.addEventListener('click', ()=>{ const p = document.getElementById('notifPanel'); if(p) p.remove(); });
+    });
+  </script>
 </body>
 
 </html>

@@ -35,6 +35,14 @@ let partsCache = [];
 
 let settings = { shop_name: 'My Spare Parts Shop', currency: 'Rs.', tax_rate: 0 };
 let cart = []; // {partId, qty}
+// track recent quantity changes to allow visual highlighting (e.g., qty decreased)
+let lastQtyChange = {}; // partId -> { delta: number, ts: epoch }
+
+function markQtyChange(partId, delta) {
+  lastQtyChange[partId] = { delta, ts: Date.now() };
+  // auto-clear after animation window
+  setTimeout(() => { if (lastQtyChange[partId] && Date.now() - lastQtyChange[partId].ts > 1100) delete lastQtyChange[partId]; }, 1200);
+}
 
 /* ---------- UTIL ---------- */
 function fmt(n) {
@@ -113,6 +121,54 @@ async function switchView(id) {
 
 /* ---------- DATA REFRESH ---------- */
 async function refreshParts() { partsCache = await api('/parts'); }
+function setLowStockBadge(count){
+  const el = document.getElementById('topNotifCount');
+  if(!el) return;
+  if(count && count > 0){
+    el.textContent = String(count);
+    el.style.display = 'inline-flex';
+    el.classList.add('pulse');
+  } else {
+    el.style.display = 'none';
+    el.classList.remove('pulse');
+  }
+}
+
+async function showLowStockPanel(e){
+  // toggle panel
+  const existing = document.getElementById('notifPanel');
+  if(existing){ existing.remove(); return; }
+  // ensure partsCache is fresh
+  await refreshParts();
+  const low = (partsCache||[]).filter(p => Number(p.stock) <= Number(p.threshold));
+  const panel = document.createElement('div');
+  panel.id = 'notifPanel';
+  panel.className = 'notif-panel';
+  if(low.length === 0){
+    panel.innerHTML = `<div class="notif-head">Notifications</div><div class="notif-empty">No low-stock items</div>`;
+  } else {
+    panel.innerHTML = `<div class="notif-head">Low stock items (${low.length})</div>` +
+      `<div class="notif-list">` + low.map(p => `<div class="notif-item"><div class="ni-name">${esc(p.name)}</div><div class="ni-meta">${esc(p.sku)} — ${p.stock} ${t('gen_units')}</div><button class="btn btn-sm" onclick="switchView('inventory').then(()=>openPartModal(${p.id}));document.getElementById('notifPanel')?.remove()">Restock</button></div>`).join('') + `</div>`;
+  }
+  document.body.appendChild(panel);
+  // position under clicked button (if event provided)
+  const btn = e && e.currentTarget ? e.currentTarget : document.getElementById('topNotifBtn');
+  if(btn){
+    const r = btn.getBoundingClientRect();
+    panel.style.left = Math.max(8, r.left) + 'px';
+    panel.style.top = (r.bottom + 8) + 'px';
+  }
+}
+
+// keep sidebar badge in sync after fetching parts
+const _refreshParts = refreshParts;
+refreshParts = async function(){
+  await _refreshParts();
+  try{
+    const low = (partsCache||[]).filter(p => Number(p.stock) <= Number(p.threshold)).length;
+    setLowStockBadge(low);
+  }catch(e){}
+}
 
 async function refreshSettings() { settings = await api('/settings'); }
 
@@ -133,6 +189,7 @@ async function renderDashboard() {
   } else {
     notifArea.innerHTML = '';
   }
+  setLowStockBadge(d.lowStockCount || 0);
 
   document.getElementById('dashCards').innerHTML = `
     <div class="stat"><div class="label">${t('dash_todayRev')}</div><div class="value accent">${fmt(d.revenueToday)}</div></div>
@@ -183,13 +240,14 @@ function renderPosGrid() {
       ? `<img src="/data/images/${esc(fileName)}" class="pos-thumb" alt="${esc(p.name)}"
            onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'pos-thumb-placeholder',textContent:'No image'}))">`
       : `<div class="pos-thumb-placeholder">No image</div>`;
+    const zone = (p.stock <= 0) ? 'bad' : stockZone(p);
     return `
     <div class="part-card ${p.stock <= 0 ? 'oos' : ''}" onclick="${p.stock > 0 ? `addToCart(${p.id})` : ''}">
       ${imgBlock}
       <div class="sku mono">${esc(p.sku)}</div>
       <div class="name">${esc(p.name)}</div>
       <div class="price">${fmt(p.price)}</div>
-      <div class="stockline">${p.stock <= 0 ? 'Out of stock' : p.stock + ' in stock'}</div>
+      <div class="stockline ${zone}">${p.stock <= 0 ? 'Out of stock' : p.stock + ' in stock'}</div>
     </div>`;
   }).join('') : `<div class="empty">No parts match your search.</div>`;
 }
@@ -210,6 +268,7 @@ function changeQty(partId, delta) {
   if (newQty <= 0) { cart = cart.filter(c => c.partId !== partId); }
   else if (newQty > part.stock) { showToast('Not enough stock available.'); return; }
   else { line.qty = newQty; }
+  if (delta < 0) markQtyChange(partId, delta);
   renderCart();
 }
 function removeFromCart(partId) {
@@ -234,6 +293,8 @@ function renderCart() {
   box.innerHTML = cart.length ? cart.map(c => {
     const p = partsCache.find(x => x.id === c.partId);
     if (!p) return '';
+    const ch = lastQtyChange[p.id];
+    const decClass = ch && ch.delta < 0 && (Date.now() - ch.ts < 1200) ? 'qty-decreased' : '';
     return `<div class="cart-line">
       <div style="flex:1">
         <div class="ci-name">${esc(p.name)}</div>
@@ -241,7 +302,7 @@ function renderCart() {
       </div>
       <div class="qty-ctl">
         <button onclick="changeQty(${p.id},-1)">−</button>
-        <span>${c.qty}</span>
+        <span class="qty-num ${decClass}">${c.qty}</span>
         <button onclick="changeQty(${p.id},1)">+</button>
       </div>
       <div class="ci-total mono">${fmt(p.price * c.qty)}</div>
@@ -315,8 +376,10 @@ function filterInventory() {
       <td>${gaugeHtml(p)}</td>
       <td>${p.image_path ? `<img src="/${esc(p.image_path)}" class="part-thumb"/>` : ''}</td>
       <td>
-        <button class="btn btn-sm" onclick="openPartModal(${p.id})">Edit</button>
-        <button class="btn btn-sm btn-danger" onclick="deletePart(${p.id})">Delete</button>
+        <div class="btn-stack">
+          <button class="btn btn-sm" onclick="openPartModal(${p.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePart(${p.id})">Delete</button>
+        </div>
       </td>
     </tr>
   `).join('') : `<tr><td colspan="9" class="empty">No parts found. Add your first part to get started.</td></tr>`;
