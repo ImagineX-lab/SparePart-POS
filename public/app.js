@@ -519,20 +519,6 @@ function showReceipt(sale) {
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
-      <div class="r-address">
-        <div class="r-address-left">
-          <div class="r-address-row"><span class="r-address-icon location"></span><span>මහියංගනය පාර, බිම්පුස්ස, තෙල්දෙනිය.</span></div>
-        </div>
-        <div class="r-address-right">
-          <div class="r-address-row">
-            <span class="r-address-icon phone"></span>
-            <div class="r-address-phone-list">
-              <div>076 7694380</div>
-              <div>077 6840860</div>
-            </div>
-          </div>
-        </div>
-      </div>
       <div class="r-meta-row">
         <span class="r-meta-label">Bill No</span>
         <span class="r-meta-value">${String(sale.id).padStart(4, '0')}</span>
@@ -542,6 +528,13 @@ function showReceipt(sale) {
         <span class="r-meta-value">${new Date(sale.date).toLocaleString()}</span>
       </div>
       <div class="r-divider-thick"></div>
+      <div class="r-items-head-row">
+        <span class="r-item-name">DESCRIPTION</span>
+        <span class="r-item-qty">QTY</span>
+        <span class="r-item-rate">RATE</span>
+        <span class="r-item-total-rs">RS.</span>
+        <span class="r-item-total-cts">CTS.</span>
+      </div>
       <table class="r-items-table">
         <thead>
           <tr class="r-items-head">
@@ -563,6 +556,11 @@ function showReceipt(sale) {
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
       <div class="r-disclaimer">අලෙවි කරන ලද වාහන විදුලි උපාංග නැවත භාරගනු නොලැබේ.</div>
+      <div class="r-software-credit">
+        Software by<br>
+        IMAGINEX<br>
+        Smart Business Solutions -0761945587
+      </div>
       <div class="r-thank-you">Thank you for your business.</div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
@@ -621,6 +619,7 @@ async function createBackup() {
 /* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+ 
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
