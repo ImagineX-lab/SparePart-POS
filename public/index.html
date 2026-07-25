@@ -171,38 +171,42 @@
         </div>
 
         <div class="view" id="view-settings">
-          <div class="panel" style="max-width:480px;">
-            <h2 data-i18n="set_title">Shop settings</h2>
-            <div class="field"><label data-i18n="set_shopName">Shop name</label><input id="setShopName" type="text">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            <div class="panel">
+              <h2 data-i18n="set_title">Shop settings</h2>
+              <div class="field"><label data-i18n="set_shopName">Shop name</label><input id="setShopName" type="text">
+              </div>
+              <div class="field"><label data-i18n="set_shopDesc">Shop description</label><textarea id="setShopDesc"
+                  rows="3"
+                  style="width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:var(--panel); font-family:inherit;"></textarea>
+              </div>
+              <div class="field"><label data-i18n="set_shopLogo">Shop logo</label><input id="setShopLogo" type="file"
+                  accept="image/*"></div>
+              <div id="setShopLogoPreview" style="margin-bottom:12px;"></div>
+              <div class="field"><label data-i18n="set_currency">Currency symbol</label><input id="setCurrency"
+                  type="text"></div>
+              <div class="field"><label data-i18n="set_tax">Default tax rate %</label><input id="setTax" type="number"
+                  min="0" max="100"></div>
+              <button class="btn btn-accent" onclick="saveSettings()" data-i18n="set_save">Save settings</button>
             </div>
-            <div class="field"><label data-i18n="set_shopDesc">Shop description</label><textarea id="setShopDesc"
-                rows="3"
-                style="width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; background:var(--panel); font-family:inherit;"></textarea>
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+              <div class="panel">
+                <h2 data-i18n="set_dataTitle">Data</h2>
+                <p class="sub" style="margin-top:0;" data-i18n="set_dataDesc">This resets all parts and sales on the server.
+                  Cannot be undone.</p>
+                <button class="btn btn-danger" onclick="resetAllData()" data-i18n="set_resetBtn">Reset all data</button>
+              </div>
+              <div class="panel">
+                <h2>ඩේටා බැකප් (Backup)</h2>
+                <p class="sub" style="margin-top:0;">
+                  Saves a safety copy of your shop data to a "Desktop Backups" folder on this computer's Desktop.
+                </p>
+                <button class="btn btn-accent" id="backupBtn" style="width:100%; padding:16px; font-size:16px;"
+                  onclick="createBackup()">
+                  සුරැකුම් පිටපතක් සාදන්න (Create Backup)
+                </button>
+              </div>
             </div>
-            <div class="field"><label data-i18n="set_shopLogo">Shop logo</label><input id="setShopLogo" type="file"
-                accept="image/*"></div>
-            <div id="setShopLogoPreview" style="margin-bottom:12px;"></div>
-            <div class="field"><label data-i18n="set_currency">Currency symbol</label><input id="setCurrency"
-                type="text"></div>
-            <div class="field"><label data-i18n="set_tax">Default tax rate %</label><input id="setTax" type="number"
-                min="0" max="100"></div>
-            <button class="btn btn-accent" onclick="saveSettings()" data-i18n="set_save">Save settings</button>
-          </div>
-          <div class="panel" style="max-width:480px;">
-            <h2 data-i18n="set_dataTitle">Data</h2>
-            <p class="sub" style="margin-top:0;" data-i18n="set_dataDesc">This resets all parts and sales on the server.
-              Cannot be undone.</p>
-            <button class="btn btn-danger" onclick="resetAllData()" data-i18n="set_resetBtn">Reset all data</button>
-          </div>
-          <div class="panel" style="max-width:480px;">
-            <h2>ඩේටා බැකප් (Backup)</h2>
-            <p class="sub" style="margin-top:0;">
-              Saves a safety copy of your shop data to a "Desktop Backups" folder on this computer's Desktop.
-            </p>
-            <button class="btn btn-accent" id="backupBtn" style="width:100%; padding:16px; font-size:16px;"
-              onclick="createBackup()">
-              සුරැකුම් පිටපතක් සාදන්න (Create Backup)
-            </button>
           </div>
         </div>
 
