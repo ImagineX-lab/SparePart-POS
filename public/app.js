@@ -61,6 +61,41 @@ function showToast(msg) {
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => t.classList.remove('show'), 2400);
 }
+// Show desktop/browser notification for low-stock items with sensible fallbacks
+function showLowStockNotification(d) {
+  try {
+    const title = `🔔 ${d.lowStockCount} low stock item(s)`;
+    const body = (d.lowStock || []).slice(0, 6).map(p => `${p.name} — ${p.stock}`).join('\n');
+    // simple embedded bell SVG as a data URL so notifications show a bell icon
+    const bellSvg = encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 24 24' fill='none' stroke='%231b1b1b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'>
+        <path d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5'/>
+        <path d='M13.73 21a2 2 0 01-3.46 0'/>
+      </svg>
+    `);
+    const iconDataUrl = `data:image/svg+xml;utf8,${bellSvg}`;
+    // If Notifications API available
+    if (window.Notification) {
+      if (Notification.permission === 'granted') {
+        const n = new Notification(title, { body, silent: false, icon: iconDataUrl });
+        n.onclick = () => { window.focus(); showLowStockPanel(); n.close(); };
+        return;
+      }
+      if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') showLowStockNotification(d);
+          else showToast(`🔔 ${d.lowStockCount} low-stock item(s). Click the bell to view.`);
+        });
+        return;
+      }
+    }
+    // Fallback: show a brief toast and ensure top badge is visible
+    showToast(`🔔 ${d.lowStockCount} item(s) running low — click the bell to view.`);
+  } catch (e) {
+    // never crash UI
+    console.error('low stock notify error', e);
+  }
+}
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
@@ -176,18 +211,12 @@ async function refreshSettings() { settings = await api('/settings'); }
 async function renderDashboard() {
   const d = await api('/dashboard');
   
+  // remove inline dashboard low-stock box; use a notification instead
   const notifArea = document.getElementById('dashNotificationArea');
+  if (notifArea) notifArea.innerHTML = '';
   if (d.lowStockCount > 0) {
-    const itemNames = d.lowStock.map(p => esc(p.name)).join(', ');
-    notifArea.innerHTML = `<div style="background: var(--warn-bg); color: var(--warn); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--warn); margin-bottom: 16px; display: flex; align-items: flex-start; gap: 10px; font-weight: 600;">
-      <span style="font-size: 18px; line-height: 1.2;">⚠️</span>
-      <div>
-        <div>${d.lowStockCount} item(s) are at or below the low stock threshold! Please restock. (අයිතම ${d.lowStockCount} ක් අවම තොග සීමාවට පැමිණ ඇත)</div>
-        <div style="font-size: 12.5px; font-weight: 400; margin-top: 4px; color: var(--accent-ink);"><strong>Items (අයිතම):</strong> ${itemNames}</div>
-      </div>
-    </div>`;
-  } else {
-    notifArea.innerHTML = '';
+    // show a desktop/browser notification (fallback to toast)
+    showLowStockNotification(d);
   }
   setLowStockBadge(d.lowStockCount || 0);
 
