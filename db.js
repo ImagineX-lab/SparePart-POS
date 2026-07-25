@@ -34,7 +34,8 @@ db.exec(`
     shop_desc TEXT,
     shop_logo TEXT,
     currency TEXT NOT NULL DEFAULT 'Rs.',
-    tax_rate REAL NOT NULL DEFAULT 0
+    tax_rate REAL NOT NULL DEFAULT 0,
+    logo_size INTEGER NOT NULL DEFAULT 48
   );
 
   CREATE TABLE IF NOT EXISTS parts (
@@ -77,9 +78,10 @@ db.exec(`
 try { db.exec('ALTER TABLE parts ADD COLUMN image_path TEXT;'); } catch (e) { console.log('image_path column may already exist'); }
 try { db.exec('ALTER TABLE settings ADD COLUMN shop_desc TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE settings ADD COLUMN shop_logo TEXT;'); } catch (e) {}
+try { db.exec('ALTER TABLE settings ADD COLUMN logo_size INTEGER DEFAULT 48;'); } catch (e) {}
 
 // Ensure a single settings row always exists
-db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate) VALUES (1, 'My Spare Parts Shop', 'Rs.', 0)`).run();
+db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size) VALUES (1, 'My Spare Parts Shop', 'Rs.', 0, 48)`).run();
 
 // Seed demo parts only on first run (empty catalog)
 const partCount = db.prepare('SELECT COUNT(*) AS c FROM parts').get().c;

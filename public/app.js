@@ -662,6 +662,13 @@ function showReceipt(sale) {
 
 
 /* ---------- SETTINGS ---------- */
+function updateLogoSizeDisplay(val) {
+  document.getElementById('logoSizeVal').textContent = val + 'px';
+  const sidebarLogo = document.getElementById('sidebarLogo');
+  if (sidebarLogo) {
+    sidebarLogo.style.maxHeight = val + 'px';
+  }
+}
 function renderSettingsForm() {
   document.getElementById('setShopName').value = settings.shop_name || '';
   document.getElementById('setShopDesc').value = settings.shop_desc || '';
@@ -671,6 +678,13 @@ function renderSettingsForm() {
   const preview = document.getElementById('setShopLogoPreview');
   preview.innerHTML = settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" style="max-height:80px; border-radius:4px;" />` : '';
   document.getElementById('setShopLogo').value = '';
+
+  const size = settings.logo_size || 48;
+  const slider = document.getElementById('setLogoSize');
+  if (slider) {
+    slider.value = size;
+    document.getElementById('logoSizeVal').textContent = size + 'px';
+  }
 }
 async function saveSettings() {
   const formData = new FormData();
@@ -678,6 +692,11 @@ async function saveSettings() {
   formData.append('shop_desc', document.getElementById('setShopDesc').value.trim());
   formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
   formData.append('tax_rate', document.getElementById('setTax').value || 0);
+
+  const slider = document.getElementById('setLogoSize');
+  if (slider) {
+    formData.append('logo_size', slider.value);
+  }
 
   const logoFile = document.getElementById('setShopLogo').files[0];
   if (logoFile) formData.append('logo', logoFile);
@@ -731,6 +750,7 @@ function updateShopUI() {
     if (settings.shop_logo) {
       sidebarLogo.src = '/' + esc(settings.shop_logo);
       sidebarLogo.style.display = 'block';
+      sidebarLogo.style.maxHeight = (settings.logo_size || 48) + 'px';
     } else {
       sidebarLogo.style.display = 'none';
     }
