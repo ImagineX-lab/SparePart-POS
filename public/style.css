@@ -132,6 +132,12 @@ header.topbar .btn-sm:hover{background:#00439a;border-color:#00439a;}
 header.topbar #clock{color:#04156e;font-weight:700;font-size:13px;}
 header.topbar .icon-btn{color:#04156e;}
 header.topbar .icon-btn:hover{color:#E87A1E;background:rgba(4,21,110,0.06);}
+/* Topbar bell button styling — use the provided image without a surrounding square/frame */
+#topNotifBtn{width:44px;height:44px;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;background:transparent;color:var(--ink);border:none;box-shadow:none}
+#topNotifBtn img, #topNotifBtn svg{width:28px;height:28px;display:block;}
+#topNotifBtn:hover{transform:translateY(-2px);}
+/* badge sits over the image; use a compact red badge for visibility */
+#topNotifCount{top:-6px;right:-6px;min-width:18px;height:18px;border-radius:10px;background:#EF4444;color:#fff;border:2px solid rgba(255,255,255,0.95);font-weight:700;box-shadow:0 6px 18px rgba(4,21,110,0.06)}
 .content{padding:22px 26px 60px;}
 
 .view{display:none;}

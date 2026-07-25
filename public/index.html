@@ -37,8 +37,13 @@
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
           <div>
-            <button id="topNotifBtn" class="icon-btn" title="Notifications">
-              <i data-lucide="bell"></i>
+            <button id="topNotifBtn" class="icon-btn" title="Notifications" aria-label="Notifications">
+              <!-- Primary: user-supplied bell image. If it fails to load, fall back to the inline SVG. -->
+              <img id="topNotifImg" src="/assets/bell.png" alt="Notifications" style="width:28px;height:28px;object-fit:contain;display:inline-block" onerror="this.nextElementSibling.style.display='inline-block'; this.remove();">
+              <svg id="topNotifSvg" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="display:none">
+                <path d="M15 17H9a3 3 0 0 1-3-3V11a6 6 0 1 1 12 0v3a3 3 0 0 1-3 3z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
               <span id="topNotifCount" class="side-badge" style="display:none">0</span>
             </button>
           </div>
@@ -274,6 +279,8 @@
     // replace lucide icons after DOM loads
     document.addEventListener('DOMContentLoaded', () => {
       if (window.lucide) try { lucide.replace(); } catch(e){}
+      // initialize notification badge by refreshing parts (safe no-op if function missing)
+      try{ if(typeof refreshParts === 'function') refreshParts().catch(()=>{}); }catch(e){}
       // attach notification bell handlers
       const topBtn = document.getElementById('topNotifBtn');
       if(topBtn) topBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); showLowStockPanel(ev); });
