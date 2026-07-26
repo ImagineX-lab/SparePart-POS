@@ -330,12 +330,12 @@ function renderCart() {
         <div class="ci-sku mono">${esc(p.sku)}</div>
       </div>
       <div class="qty-ctl">
-        <button onclick="changeQty(${p.id},-1)">−</button>
+        <button style="color:var(--bad); border-color:var(--bad)" onclick="changeQty(${p.id},-1)">−</button>
         <span class="qty-num ${decClass}">${c.qty}</span>
-        <button onclick="changeQty(${p.id},1)">+</button>
+        <button style="color:var(--good); border-color:var(--good)" onclick="changeQty(${p.id},1)">+</button>
       </div>
       <div class="ci-total mono">${fmt(p.price * c.qty)}</div>
-      <button class="btn-ghost" onclick="removeFromCart(${p.id})" title="Remove">✕</button>
+      <button class="btn-ghost" style="color:var(--bad); font-weight:bold" onclick="removeFromCart(${p.id})" title="Remove">✕</button>
     </div>`;
   }).join('') : `<div class="empty">Cart is empty. Tap a part to add it.</div>`;
 
@@ -709,7 +709,12 @@ async function saveSettings() {
   updateShopUI();
 }
 async function resetAllData() {
-  if (!confirm('This will permanently erase all parts and sales on the server. Continue?')) return;
+  const shopName = settings.shop_name || 'My Spare Parts Shop';
+  const confirmText = prompt(`WARNING: This will permanently erase all parts and sales on the server.\n\nTo continue, please type your shop name: "${shopName}"`);
+  if (confirmText !== shopName) {
+    if (confirmText !== null) showToast('Reset cancelled: Shop name did not match.');
+    return;
+  }
   await api('/reset', { method: 'POST' });
   showToast('All data has been reset.');
   await switchView('dashboard');

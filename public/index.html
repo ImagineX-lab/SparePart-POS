@@ -112,10 +112,10 @@
               <div class="field" style="margin-top:10px;">
                 <label data-i18n="pos_payMethod">Payment method</label>
                 <select id="payMethod">
-                  <option data-i18n="pos_methodCash">Cash</option>
-                  <option data-i18n="pos_methodCard">Card</option>
-                  <option data-i18n="pos_methodBank">Bank Transfer</option>
-                  <option data-i18n="pos_methodOther">Other</option>
+                  <option value="Cash" data-i18n="pos_methodCash">Cash</option>
+                  <option value="Card" data-i18n="pos_methodCard">Card</option>
+                  <option value="Bank Transfer" data-i18n="pos_methodBank">Bank Transfer</option>
+                  <option value="Other" data-i18n="pos_methodOther">Other</option>
                 </select>
               </div>
               <div class="field" id="cashRow">
@@ -211,13 +211,12 @@
                 <button class="btn btn-danger" onclick="resetAllData()" data-i18n="set_resetBtn">Reset all data</button>
               </div>
               <div class="panel">
-                <h2>ඩේටා බැකප් (Backup)</h2>
+                <h2 data-i18n="set_backupTitle">Data Backup</h2>
                 <p class="sub" style="margin-top:0;">
                   Saves a safety copy of your shop data to a "Desktop Backups" folder on this computer's Desktop.
                 </p>
-                <button class="btn btn-accent" id="backupBtn" style="width:100%; padding:16px; font-size:16px;"
-                  onclick="createBackup()">
-                  සුරැකුම් පිටපතක් සාදන්න (Create Backup)
+                <button class="btn btn-accent" id="backupBtn" onclick="createBackup()" data-i18n="set_backupBtn">
+                  Create Backup
                 </button>
               </div>
             </div>
