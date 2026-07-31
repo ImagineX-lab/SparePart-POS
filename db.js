@@ -34,7 +34,8 @@ db.exec(`
     shop_logo TEXT,
     currency TEXT NOT NULL DEFAULT 'Rs.',
     tax_rate REAL NOT NULL DEFAULT 0,
-    logo_size INTEGER NOT NULL DEFAULT 48
+    logo_size INTEGER NOT NULL DEFAULT 48,
+    ui_font_size TEXT NOT NULL DEFAULT 'small'
   );
 
   CREATE TABLE IF NOT EXISTS parts (
@@ -78,9 +79,10 @@ try { db.exec('ALTER TABLE parts ADD COLUMN image_path TEXT;'); } catch (e) { co
 try { db.exec('ALTER TABLE settings ADD COLUMN shop_desc TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE settings ADD COLUMN shop_logo TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE settings ADD COLUMN logo_size INTEGER DEFAULT 48;'); } catch (e) {}
+try { db.exec("ALTER TABLE settings ADD COLUMN ui_font_size TEXT DEFAULT 'small';"); } catch (e) {}
 
 // Ensure a single settings row always exists
-db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size) VALUES (1, 'KN Motors', 'Rs.', 0, 48)`).run();
+db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size, ui_font_size) VALUES (1, 'KN Motors', 'Rs.', 0, 48, 'small')`).run();
 
 // Seed demo parts only on first run (empty catalog)
 const partCount = db.prepare('SELECT COUNT(*) AS c FROM parts').get().c;
