@@ -4,7 +4,12 @@ const router = express.Router();
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const upload = multer({ dest: path.join(__dirname, '..', 'data', 'images') });
+
+let dataDir = path.join(__dirname, '..');
+if (process.versions && process.versions.electron) {
+  try { dataDir = require('electron').app.getPath('userData'); } catch (e) {}
+}
+const upload = multer({ dest: path.join(dataDir, 'data', 'images') });
 
 router.get('/', (req, res) => {
   const rows = db.prepare('SELECT * FROM parts ORDER BY name').all();
@@ -56,7 +61,7 @@ router.put('/:id', upload.single('image'), (req, res) => {
   if (req.file) {
     // Delete old image file if it exists
     if (existing.image_path) {
-      const oldPath = path.join(__dirname, '..', 'data', 'images', path.basename(existing.image_path));
+      const oldPath = path.join(dataDir, 'data', 'images', path.basename(existing.image_path));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
     newImagePath = path.join('images', req.file.filename);

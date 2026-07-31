@@ -7,6 +7,11 @@ const partsRoutes = require('./routes/parts');
 const salesRoutes = require('./routes/sales');
 const miscRoutes = require('./routes/misc');
 
+let dataDir = __dirname;
+if (process.versions && process.versions.electron) {
+  try { dataDir = require('electron').app.getPath('userData'); } catch (e) {}
+}
+
 function createApp() {
   const app = express();
 
@@ -16,8 +21,8 @@ function createApp() {
   app.use('/api/sales', salesRoutes);
   app.use('/api', miscRoutes); // /api/settings, /api/dashboard, /api/reset
   app.use(express.static(path.join(__dirname, 'public')));
-  app.use('/images', express.static(path.join(__dirname, 'data', 'images'))); // kept for existing image_path values
-  app.use('/data/images', express.static(path.join(__dirname, 'data', 'images'))); // explicit route per spec
+  app.use('/images', express.static(path.join(dataDir, 'data', 'images'))); // kept for existing image_path values
+  app.use('/data/images', express.static(path.join(dataDir, 'data', 'images'))); // explicit route per spec
 
 
   app.use((req, res) => {
@@ -41,6 +46,6 @@ if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   const app = createApp();
   app.listen(PORT, () => {
-    console.log(`Gearbox POS running at http://localhost:${PORT}`);
+    console.log(`KN Motors POS running at http://localhost:${PORT}`);
   });
 }

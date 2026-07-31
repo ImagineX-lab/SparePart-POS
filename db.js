@@ -23,14 +23,13 @@ db.exec('PRAGMA journal_mode=WAL;');
 
   // Ensure data/images directory exists for storing uploaded images
   const fs = require('fs');
-  // duplicate path import removed
-  const imagesDir = path.join(__dirname, 'data', 'images');
+  const imagesDir = path.join(dataDir, 'data', 'images');
   if (!fs.existsSync(imagesDir)) { fs.mkdirSync(imagesDir, { recursive: true }); }
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (
     id INTEGER PRIMARY KEY CHECK (id = 1),
-    shop_name TEXT NOT NULL DEFAULT 'My Spare Parts Shop',
+    shop_name TEXT NOT NULL DEFAULT 'KN Motors',
     shop_desc TEXT,
     shop_logo TEXT,
     currency TEXT NOT NULL DEFAULT 'Rs.',
@@ -81,7 +80,7 @@ try { db.exec('ALTER TABLE settings ADD COLUMN shop_logo TEXT;'); } catch (e) {}
 try { db.exec('ALTER TABLE settings ADD COLUMN logo_size INTEGER DEFAULT 48;'); } catch (e) {}
 
 // Ensure a single settings row always exists
-db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size) VALUES (1, 'My Spare Parts Shop', 'Rs.', 0, 48)`).run();
+db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size) VALUES (1, 'KN Motors', 'Rs.', 0, 48)`).run();
 
 // Seed demo parts only on first run (empty catalog)
 const partCount = db.prepare('SELECT COUNT(*) AS c FROM parts').get().c;

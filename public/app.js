@@ -607,7 +607,10 @@ function showReceipt(sale) {
   const total = amountParts(sale.total);
   const html = `
     <div class="receipt invoice">
-      ${settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" class="r-watermark" alt="Watermark" /><img src="/${esc(settings.shop_logo)}" class="r-shop-logo" />` : ''}
+      ${(() => {
+        const logoUrl = settings.shop_logo ? `/${esc(settings.shop_logo)}` : '/logo.png';
+        return `<img src="${logoUrl}" class="r-watermark" alt="Watermark" /><img src="${logoUrl}" class="r-shop-logo" />`;
+      })()}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
@@ -739,14 +742,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
-  document.getElementById('sidefoot').textContent = settings.shop_name || 'Gearbox POS';
+  document.getElementById('sidefoot').textContent = settings.shop_name || 'KN Motors';
 
   const sidebarName = document.getElementById('sidebarName');
   if (sidebarName) {
-    if (settings.shop_name && settings.shop_name !== 'My Spare Parts Shop') {
+    if (settings.shop_name && settings.shop_name !== 'KN Motors') {
       sidebarName.textContent = settings.shop_name;
     } else {
-      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : 'Gearbox POS'}</span>`;
+      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : 'KN Motors'}</span>`;
     }
   }
 
@@ -757,7 +760,9 @@ function updateShopUI() {
       sidebarLogo.style.display = 'block';
       sidebarLogo.style.maxHeight = (settings.logo_size || 48) + 'px';
     } else {
-      sidebarLogo.style.display = 'none';
+      sidebarLogo.src = '/logo.png';
+      sidebarLogo.style.display = 'block';
+      sidebarLogo.style.maxHeight = (settings.logo_size || 48) + 'px';
     }
   }
 }

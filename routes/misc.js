@@ -5,7 +5,12 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const upload = multer({ dest: path.join(__dirname, '..', 'data', 'images') });
+
+let dataDir = path.join(__dirname, '..');
+if (process.versions && process.versions.electron) {
+  try { dataDir = require('electron').app.getPath('userData'); } catch (e) {}
+}
+const upload = multer({ dest: path.join(dataDir, 'data', 'images') });
 
 router.get('/settings', (req, res) => {
   res.json(db.prepare('SELECT * FROM settings WHERE id = 1').get());
@@ -17,7 +22,7 @@ router.put('/settings', upload.single('logo'), (req, res) => {
   let newLogo = existing.shop_logo;
   if (req.file) {
     if (existing.shop_logo) {
-      const oldPath = path.join(__dirname, '..', 'data', 'images', path.basename(existing.shop_logo));
+      const oldPath = path.join(dataDir, 'data', 'images', path.basename(existing.shop_logo));
       if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
     }
     newLogo = path.join('images', req.file.filename).replace(/\\/g, '/');
@@ -66,7 +71,7 @@ router.post('/reset', (req, res) => {
   db.exec('DELETE FROM sale_items; DELETE FROM sales; DELETE FROM parts;');
   // Remove all uploaded images from data/images
   try {
-    const imagesDir = path.join(__dirname, '..', 'data', 'images');
+    const imagesDir = path.join(dataDir, 'data', 'images');
     if (fs.existsSync(imagesDir)) {
       for (const f of fs.readdirSync(imagesDir)) {
         // skip hidden files (like .gitkeep) and directories

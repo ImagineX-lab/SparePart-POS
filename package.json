@@ -47,8 +47,8 @@
     "typescript": "^7.0.2"
   },
   "build": {
-    "appId": "com.gearboxpos.app",
-    "productName": "Gearbox POS",
+    "appId": "com.knmotors.app",
+    "productName": "KN Motors",
     "copyright": "Copyright © 2026",
     "files": [
       "server.js",
