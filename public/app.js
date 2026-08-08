@@ -704,6 +704,9 @@ function renderSettingsForm() {
   document.getElementById('setShopDesc').value = settings.shop_desc || '';
   document.getElementById('setCurrency').value = settings.currency || '';
   document.getElementById('setTax').value = settings.tax_rate || 0;
+  if (document.getElementById('setFontSize')) {
+    document.getElementById('setFontSize').value = settings.ui_font_size || 'small';
+  }
 
   const preview = document.getElementById('setShopLogoPreview');
   preview.innerHTML = settings.shop_logo ? `<img src="/${esc(settings.shop_logo)}" style="max-height:80px; border-radius:4px;" />` : '';
@@ -722,6 +725,9 @@ async function saveSettings() {
   formData.append('shop_desc', document.getElementById('setShopDesc').value.trim());
   formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
   formData.append('tax_rate', document.getElementById('setTax').value || 0);
+  if (document.getElementById('setFontSize')) {
+    formData.append('ui_font_size', document.getElementById('setFontSize').value);
+  }
 
   const slider = document.getElementById('setLogoSize');
   if (slider) {
@@ -770,6 +776,14 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
   document.getElementById('sidefoot').textContent = settings.shop_name || 'KN Motors';
+  
+  // Apply font size class
+  document.body.classList.remove('fs-small', 'fs-medium', 'fs-large', 'fs-xl');
+  if (settings.ui_font_size) {
+    document.body.classList.add(`fs-${settings.ui_font_size}`);
+  } else {
+    document.body.classList.add('fs-small');
+  }
 
   const sidebarName = document.getElementById('sidebarName');
   if (sidebarName) {

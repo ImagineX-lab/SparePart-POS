@@ -18,7 +18,7 @@ router.get('/settings', (req, res) => {
 
 router.put('/settings', upload.single('logo'), (req, res) => {
   const existing = db.prepare('SELECT * FROM settings WHERE id = 1').get();
-  const { shop_name, shop_desc, currency, tax_rate, logo_size } = req.body;
+  const { shop_name, shop_desc, currency, tax_rate, logo_size, ui_font_size } = req.body;
   let newLogo = existing.shop_logo;
   if (req.file) {
     if (existing.shop_logo) {
@@ -28,13 +28,14 @@ router.put('/settings', upload.single('logo'), (req, res) => {
     newLogo = path.join('images', req.file.filename).replace(/\\/g, '/');
   }
   
-  db.prepare('UPDATE settings SET shop_name=?, shop_desc=?, currency=?, tax_rate=?, shop_logo=?, logo_size=? WHERE id=1').run(
+  db.prepare('UPDATE settings SET shop_name=?, shop_desc=?, currency=?, tax_rate=?, shop_logo=?, logo_size=?, ui_font_size=? WHERE id=1').run(
     shop_name ?? existing.shop_name,
     shop_desc ?? existing.shop_desc,
     currency ?? existing.currency,
     tax_rate !== undefined && tax_rate !== '' ? Number(tax_rate) : existing.tax_rate,
     newLogo,
-    logo_size !== undefined && logo_size !== '' ? Number(logo_size) : existing.logo_size
+    logo_size !== undefined && logo_size !== '' ? Number(logo_size) : existing.logo_size,
+    ui_font_size ?? existing.ui_font_size
   );
   res.json(db.prepare('SELECT * FROM settings WHERE id = 1').get());
 });
