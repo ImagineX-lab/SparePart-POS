@@ -120,7 +120,7 @@
               </div>
               <div class="field" id="cashRow">
                 <label data-i18n="pos_amountRec">Amount received</label>
-                <input id="cashReceived" data-i18n="pos_amountRec" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00">
+                <input id="cashReceived" data-i18n="pos_amountRec" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" onkeydown="if(event.key === 'Enter') checkout()">
                 <div class="sub mono" id="changeDue" style="margin-top:4px;"></div>
               </div>
               <div style="display:flex;gap:8px;">
@@ -215,9 +215,15 @@
                 <p class="sub" style="margin-top:0;">
                   Saves a safety copy of your shop data to a "Desktop Backups" folder on this computer's Desktop.
                 </p>
-                <button class="btn btn-accent" id="backupBtn" onclick="createBackup()" data-i18n="set_backupBtn">
-                  Create Backup
-                </button>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-accent" id="backupBtn" onclick="createBackup()" data-i18n="set_backupBtn">
+                    Create Backup
+                  </button>
+                  <label class="btn btn-accent" style="cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
+                    දත්ත නැවත ලබාගන්න (Restore Backup)
+                    <input type="file" id="restoreFile" accept=".db" style="display:none;" onchange="restoreBackup(event)">
+                  </label>
+                </div>
               </div>
             </div>
           </div>

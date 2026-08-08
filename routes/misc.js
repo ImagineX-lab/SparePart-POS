@@ -69,13 +69,23 @@ router.get('/dashboard', (req, res) => {
 
 router.post('/reset', (req, res) => {
   db.exec('DELETE FROM sale_items; DELETE FROM sales; DELETE FROM parts;');
-  // Remove all uploaded images from data/images
+  
+  // Get current shop logo to avoid deleting it
+  let shopLogoFile = null;
+  try {
+    const settings = db.prepare('SELECT shop_logo FROM settings WHERE id = 1').get();
+    if (settings && settings.shop_logo) {
+      shopLogoFile = path.basename(settings.shop_logo);
+    }
+  } catch (e) {}
+
+  // Remove all uploaded images from data/images EXCEPT the shop logo
   try {
     const imagesDir = path.join(dataDir, 'data', 'images');
     if (fs.existsSync(imagesDir)) {
       for (const f of fs.readdirSync(imagesDir)) {
-        // skip hidden files (like .gitkeep) and directories
         if (!f || f.startsWith('.')) continue;
+        if (f === shopLogoFile) continue; // Skip shop logo
         const p = path.join(imagesDir, f);
         try { if (fs.lstatSync(p).isFile()) fs.unlinkSync(p); } catch (e) { /* ignore individual file errors */ }
       }
@@ -84,26 +94,7 @@ router.post('/reset', (req, res) => {
     console.error('Error clearing images directory:', e);
   }
 
-  // Reset settings to defaults (clear shop logo and description)
-  try {
-    db.prepare('UPDATE settings SET shop_name = ?, shop_desc = NULL, currency = ?, tax_rate = ?, shop_logo = NULL WHERE id = 1')
-      .run('My Spare Parts Shop', 'Rs.', 0);
-  } catch (e) { console.error('Error resetting settings:', e); }
-
-  const seed = [
-    ['Brake Pad Set - Front', 'BRK-1042', 'Brakes', 18.00, 32.00, 24, 5],
-    ['Brake Pad Set - Rear', 'BRK-1043', 'Brakes', 16.00, 28.00, 18, 5],
-    ['Engine Oil Filter', 'FLT-2210', 'Filters', 3.50, 7.50, 60, 10],
-    ['Air Filter - Standard', 'FLT-2233', 'Filters', 4.00, 8.50, 42, 10],
-    ['Spark Plug (single)', 'ELC-3305', 'Electrical', 2.20, 4.50, 120, 20],
-    ['12V Car Battery 45Ah', 'ELC-3390', 'Electrical', 55.00, 89.00, 6, 2],
-    ['Shock Absorber - Front', 'SUS-4410', 'Suspension', 34.00, 62.00, 10, 3],
-    ['Radiator Coolant 1L', 'FLU-5501', 'Fluids', 5.00, 9.50, 30, 8],
-    ['Headlight Bulb H4', 'ELC-3410', 'Electrical', 3.00, 6.00, 4, 10],
-    ['Timing Belt Kit', 'ENG-6601', 'Engine', 28.00, 54.00, 8, 3]
-  ];
-  const insert = db.prepare(`INSERT INTO parts (name, sku, category, cost, price, stock, threshold) VALUES (?,?,?,?,?,?,?)`);
-  for (const p of seed) insert.run(...p);
+  // NOTE: Settings are NOT reset, and demo parts are NOT seeded.
   res.status(204).end();
 });
 
@@ -114,22 +105,6 @@ router.post('/backup', (req, res) => {
     const backupDir = path.join(desktopPath, 'Desktop Backups');
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
-    }
-
-    // Resolve the live shop.db location the same way db.js does
-    let dataDir = path.join(__dirname, '..');
-    if (process.versions && process.versions.electron) {
-      try {
-        const { app } = require('electron');
-        dataDir = app.getPath('userData');
-      } catch (e) {
-        // fall back to project dir if not resolvable
-      }
-    }
-    const dbPath = path.join(dataDir, 'shop.db');
-
-    if (!fs.existsSync(dbPath)) {
-      return res.status(404).json({ error: 'Database file not found, nothing to back up' });
     }
 
     const now = new Date();
@@ -144,11 +119,61 @@ router.post('/backup', (req, res) => {
       backupPath = path.join(backupDir, fileName);
     }
 
-    fs.copyFileSync(dbPath, backupPath);
+    // Use VACUUM INTO to create a safe, consistent backup even in WAL mode
+    db.exec(`VACUUM INTO '${backupPath.replace(/'/g, "''")}';`);
+    
     res.json({ success: true, path: backupPath, fileName });
   } catch (e) {
     console.error('Backup failed:', e);
     res.status(500).json({ error: `Backup failed: ${e.message}` });
+  }
+});
+
+const uploadDb = multer({ dest: os.tmpdir() });
+
+router.post('/restore', uploadDb.single('backup'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No backup file provided' });
+  try {
+    // We attach the uploaded DB to safely copy data without closing the main DB
+    db.exec(`ATTACH DATABASE '${req.file.path.replace(/'/g, "''")}' AS restore_db;`);
+    
+    try {
+      db.exec(`
+        DELETE FROM sale_items;
+        DELETE FROM sales;
+        DELETE FROM parts;
+        DELETE FROM settings;
+      `);
+      
+      // We use INSERT OR IGNORE just in case, but really we just want to copy if tables exist.
+      // If the backup doesn't have the table, it'll throw and we catch it below.
+      db.exec(`
+        INSERT INTO settings SELECT * FROM restore_db.settings;
+        INSERT INTO parts SELECT * FROM restore_db.parts;
+        INSERT INTO sales SELECT * FROM restore_db.sales;
+        INSERT INTO sale_items SELECT * FROM restore_db.sale_items;
+      `);
+
+      // Restore AUTOINCREMENT sequences (ignore if sequence table missing in backup)
+      try {
+        db.exec(`
+          DELETE FROM sqlite_sequence WHERE name IN ('parts', 'sales', 'sale_items');
+          INSERT INTO sqlite_sequence SELECT * FROM restore_db.sqlite_sequence WHERE name IN ('parts', 'sales', 'sale_items');
+        `);
+      } catch (seqErr) {
+        // ignore if sequence fails
+      }
+    } finally {
+      // Ensure we always detach the DB so the file handle is released
+      db.exec(`DETACH DATABASE restore_db;`);
+    }
+
+    fs.unlinkSync(req.file.path);
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Restore failed:', e);
+    try { if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path); } catch(ex){}
+    res.status(500).json({ error: `Restore failed: ${e.message}` });
   }
 });
 

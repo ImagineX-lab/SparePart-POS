@@ -375,7 +375,6 @@ async function checkout() {
       })
     });
     showReceipt(sale);
-    await switchView('history');
     clearCart();
     await refreshParts();
     renderPosGrid();
@@ -383,6 +382,34 @@ async function checkout() {
     showToast(e.message);
   } finally {
     btn.disabled = false;
+  }
+}
+
+async function restoreBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!confirm("මෙමගින් වත්මන් දත්ත අලුත් දත්ත වලින් වෙනස් වේ. ඉදිරියට යන්නේද?")) {
+    event.target.value = "";
+    return;
+  }
+  const formData = new FormData();
+  formData.append('backup', file);
+  try {
+    const res = await fetch('/api/restore', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      alert("දත්ත සාර්ථකව යථා තත්ත්වයට පත් කරන ලදී!");
+      location.reload();
+    } else {
+      showToast(data.error || 'Restore failed');
+    }
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    event.target.value = "";
   }
 }
 
