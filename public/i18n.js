@@ -45,7 +45,7 @@ const i18nDict = {
     pos_methodOther: "Other",
     pos_amountRec: "Amount received",
     pos_clear: "Clear",
-    pos_complete: "Complete Sale",
+    pos_complete: "Print",
     
     // Inventory
     inv_title: "Parts inventory",
