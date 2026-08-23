@@ -786,14 +786,14 @@ function printReceipt() {
   <title>Print Receipt</title>
   ${styleLinks}
   <style>
-    @page { size: 80mm auto; margin: 0 !important; }
-    html, body { width: 80mm; margin: 0; padding: 0; background: #fff; }
-    body { padding: 2mm; box-sizing: border-box; }
+    @page { margin: 0; size: auto; }
+    html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
+    #receipt-print-frame { margin: 0; padding: 0; }
     .modal-actions, button { display: none !important; }
     * { color: #000 !important; background: transparent !important;
         text-shadow: none !important; box-shadow: none !important; }
     .receipt { width: 100% !important; max-width: none !important;
-               padding: 0 !important; margin: 0 !important; }
+               padding: 0 !important; margin: 0 !important; border: none !important; }
     .r-watermark { display: none !important; }
     .r-shop-logo { max-width: 60px !important; max-height: 60px !important; }
     .r-shop-name { font-size: 16pt !important; }
