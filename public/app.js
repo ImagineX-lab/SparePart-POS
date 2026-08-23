@@ -33,7 +33,9 @@ async function apiFormData(path, options = {}) {
 /* ---------- LOCAL CACHES (kept in sync with the server) ---------- */
 let partsCache = [];
 
-let settings = { shop_name: 'My Spare Parts Shop', currency: 'Rs.', tax_rate: 0 };
+const DEFAULT_SHOP_NAME = 'KN Motors';
+const DEFAULT_SHOP_DESC = 'Automotive spare parts & accessories';
+let settings = { shop_name: DEFAULT_SHOP_NAME, shop_desc: DEFAULT_SHOP_DESC, currency: 'Rs.', tax_rate: 0 };
 let cart = []; // {partId, qty}
 // track recent quantity changes to allow visual highlighting (e.g., qty decreased)
 let lastQtyChange = {}; // partId -> { delta: number, ts: epoch }
@@ -128,15 +130,18 @@ function gaugeHtml(part) {
 
 /* ---------- NAV ---------- */
 const NAV = [
-  { id: 'dashboard', label: '🏠 මුල් පිටුව', sub: "Today's snapshot" },
-  { id: 'pos', label: '🛍️ විකුණුම්', sub: 'Ring up a sale' },
-  { id: 'inventory', label: '📦 තොග', sub: 'Manage your parts catalog' },
-  { id: 'history', label: '🧾 බිල්', sub: 'Past transactions' },
-  { id: 'settings', label: '⚙️ සැකසුම්', sub: 'Shop configuration' }
+  { id: 'pos',       icon: '🛒', label: 'විකුණුම්',  sub: 'Ring up a sale' },
+  { id: 'dashboard', icon: '🏠', label: 'මුල් පිටුව', sub: "Today's snapshot" },
+  { id: 'inventory', icon: '📦', label: 'තොග',        sub: 'Manage your parts catalog' },
+  { id: 'history',   icon: '🧾', label: 'බිල්',       sub: 'Past transactions' },
+  { id: 'settings',  icon: '⚙️', label: 'සැකසුම්',   sub: 'Shop configuration' }
 ];
 function renderNav() {
   document.getElementById('navlist').innerHTML = NAV.map(n =>
-    `<button class="navbtn navbtn-lg" id="nav-${n.id}" onclick="switchView('${n.id}')">${n.label}</button>`
+    `<button class="navbtn navbtn-lg" id="nav-${n.id}" onclick="switchView('${n.id}')">
+       <span class="nav-icon">${n.icon}</span>
+       <span class="nav-label">${n.label}</span>
+     </button>`
   ).join('');
 }
 async function switchView(id) {
@@ -634,7 +639,7 @@ function showReceipt(sale) {
       })()}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
-      <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
+      <div class="r-shop-note">Trusted automotive parts, accessories, and service essentials for every journey.</div>
       <div class="r-meta-row">
         <span class="r-meta-label">Bill No</span>
         <span class="r-meta-value">${String(sale.id).padStart(4, '0')}</span>
@@ -662,10 +667,10 @@ function showReceipt(sale) {
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
-      <div class="r-disclaimer">අලෙවි කරන ලද වාහන විදුලි උපාංග නැවත භාරගනු නොලැබේ.</div>
+      <div class="r-disclaimer">Please inspect parts before installation and keep your receipt for warranty support.</div>
       <div class="r-thank-you">Thank you for your business!</div>
       <div class="r-software-credit">
-        imagineX software solution - 0761945587
+        KN Motors • Automotive Parts & Accessories
       </div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
@@ -704,8 +709,8 @@ function renderSettingsForm() {
 }
 async function saveSettings() {
   const formData = new FormData();
-  formData.append('shop_name', document.getElementById('setShopName').value.trim() || 'My Spare Parts Shop');
-  formData.append('shop_desc', document.getElementById('setShopDesc').value.trim());
+  formData.append('shop_name', document.getElementById('setShopName').value.trim() || DEFAULT_SHOP_NAME);
+  formData.append('shop_desc', document.getElementById('setShopDesc').value.trim() || DEFAULT_SHOP_DESC);
   formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
   formData.append('tax_rate', document.getElementById('setTax').value || 0);
   if (document.getElementById('setFontSize')) {
@@ -728,7 +733,7 @@ async function saveSettings() {
   updateShopUI();
 }
 async function resetAllData() {
-  const shopName = settings.shop_name || 'My Spare Parts Shop';
+  const shopName = settings.shop_name || DEFAULT_SHOP_NAME;
   const confirmText = prompt(`WARNING: This will permanently erase all parts and sales on the server.\n\nTo continue, please type your shop name: "${shopName}"`);
   if (confirmText !== shopName) {
     if (confirmText !== null) showToast('Reset cancelled: Shop name did not match.');
@@ -758,7 +763,7 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
-  document.getElementById('sidefoot').textContent = settings.shop_name || 'KN Motors';
+  document.getElementById('sidefoot').textContent = settings.shop_name || DEFAULT_SHOP_NAME;
   
   // Apply font size class
   document.body.classList.remove('fs-small', 'fs-medium', 'fs-large', 'fs-xl');
@@ -770,10 +775,10 @@ function updateShopUI() {
 
   const sidebarName = document.getElementById('sidebarName');
   if (sidebarName) {
-    if (settings.shop_name && settings.shop_name !== 'KN Motors') {
+    if (settings.shop_name && settings.shop_name !== DEFAULT_SHOP_NAME) {
       sidebarName.textContent = settings.shop_name;
     } else {
-      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : 'KN Motors'}</span>`;
+      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : DEFAULT_SHOP_NAME}</span>`;
     }
   }
 
@@ -815,7 +820,7 @@ async function init() {
   bindEvents();
   await refreshSettings();
   updateShopUI();
-  await switchView('dashboard');
+  await switchView('pos');
   tickClock();
   setInterval(tickClock, 1000);
 }

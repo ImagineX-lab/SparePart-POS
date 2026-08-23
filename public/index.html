@@ -18,6 +18,8 @@
 <body>
 
   <div id="app">
+    <!-- thin trigger strip that opens the sidebar on hover -->
+    <div id="sidebar-trigger"></div>
     <aside id="sidebar">
       <div class="brand">
         <img id="sidebarLogo" class="brand-logo" src="/logo.png" alt="Shop Logo" style="display: block;" />
@@ -309,6 +311,35 @@
       if(topBtn) topBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); showLowStockPanel(ev); });
       // close panel when clicking elsewhere
       document.addEventListener('click', ()=>{ const p = document.getElementById('notifPanel'); if(p) p.remove(); });
+
+      // ── Hover-to-show sidebar ──
+      const sidebar  = document.getElementById('sidebar');
+      const trigger  = document.getElementById('sidebar-trigger');
+      let closeTimer = null;
+
+      function openSidebar() {
+        clearTimeout(closeTimer);
+        sidebar.classList.add('sidebar-open');
+        // hide the trigger strip while sidebar is open
+        trigger.style.opacity = '0';
+        trigger.style.pointerEvents = 'none';
+      }
+      function closeSidebar() {
+        closeTimer = setTimeout(() => {
+          sidebar.classList.remove('sidebar-open');
+          trigger.style.opacity = '';
+          trigger.style.pointerEvents = '';
+        }, 120); // small delay prevents flicker when moving between trigger & sidebar
+      }
+
+      if (trigger) {
+        trigger.addEventListener('mouseenter', openSidebar);
+        trigger.addEventListener('mouseleave', closeSidebar);
+      }
+      if (sidebar) {
+        sidebar.addEventListener('mouseenter', openSidebar);
+        sidebar.addEventListener('mouseleave', closeSidebar);
+      }
     });
   </script>
 </body>

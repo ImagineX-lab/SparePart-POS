@@ -82,7 +82,7 @@ try { db.exec('ALTER TABLE settings ADD COLUMN logo_size INTEGER DEFAULT 48;'); 
 try { db.exec("ALTER TABLE settings ADD COLUMN ui_font_size TEXT DEFAULT 'small';"); } catch (e) {}
 
 // Ensure a single settings row always exists
-db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, currency, tax_rate, logo_size, ui_font_size) VALUES (1, 'KN Motors', 'Rs.', 0, 48, 'small')`).run();
+db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, shop_desc, currency, tax_rate, logo_size, ui_font_size) VALUES (1, 'KN Motors', 'Automotive spare parts & accessories', 'Rs.', 0, 48, 'small')`).run();
 
 // Seed demo parts only on first run (empty catalog)
 const partCount = db.prepare('SELECT COUNT(*) AS c FROM parts').get().c;
