@@ -617,21 +617,15 @@ function filterHistory() {
 function showReceipt(sale) {
   const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
   const itemsHtml = sale.items.map(i => {
-    const rate = amountParts(i.price);
-    const total = amountParts(i.price * i.qty);
     return `
       <tr class="r-item-row">
         <td class="r-item-name">${esc(i.name)}</td>
         <td class="r-item-qty">${i.qty}</td>
-        <td class="r-item-rate">${rate.whole}.${rate.fraction}</td>
-        <td class="r-item-total-rs">${total.whole}</td>
-        <td class="r-item-total-cts">${total.fraction}</td>
+        <td class="r-item-price">${fmt(i.price * i.qty)}</td>
       </tr>`;
   }).join('');
-  const subtotal = amountParts(sale.subtotal);
-  const discount = amountParts(sale.discount);
-  const tax = amountParts(sale.tax);
-  const total = amountParts(sale.total);
+  const subtotal = fmt(sale.subtotal);
+  const total = fmt(sale.total);
   const html = `
     <div class="receipt invoice">
       ${(() => {
@@ -650,21 +644,12 @@ function showReceipt(sale) {
         <span class="r-meta-value">${new Date(sale.date).toLocaleString()}</span>
       </div>
       <div class="r-divider-thick"></div>
-      <div class="r-items-head-row">
-        <span class="r-item-name">DESCRIPTION</span>
-        <span class="r-item-qty">QTY</span>
-        <span class="r-item-rate">RATE</span>
-        <span class="r-item-total-rs">RS.</span>
-        <span class="r-item-total-cts">CTS.</span>
-      </div>
       <table class="r-items-table">
         <thead>
           <tr class="r-items-head">
-            <th class="r-item-name">Description</th>
+            <th class="r-item-name">Item Name</th>
             <th class="r-item-qty">Qty</th>
-            <th class="r-item-rate">Rate</th>
-            <th class="r-item-total-rs">Rs.</th>
-            <th class="r-item-total-cts">Cts.</th>
+            <th class="r-item-price">Price</th>
           </tr>
         </thead>
         <tbody>
@@ -672,21 +657,19 @@ function showReceipt(sale) {
         </tbody>
       </table>
       <div class="r-divider-dashed"></div>
-      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal.whole}.${subtotal.fraction}</span></div>
-      <div class="r-totals-row grand"><span>Total</span><span>${total.whole}.${total.fraction}</span></div>
+      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal}</span></div>
+      <div class="r-totals-row grand"><span>Total</span><span>${total}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
       <div class="r-disclaimer">අලෙවි කරන ලද වාහන විදුලි උපාංග නැවත භාරගනු නොලැබේ.</div>
+      <div class="r-thank-you">Thank you for your business!</div>
       <div class="r-software-credit">
-        Software by<br>
-        IMAGINEX<br>
-        Smart Business Solutions -0761945587
+        imagineX software solution - 0761945587
       </div>
-      <div class="r-thank-you">Thank you for your business.</div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
-  openModal('receiptModalBg');
+  openModal('receipt-modal-container');
 }
 
 
