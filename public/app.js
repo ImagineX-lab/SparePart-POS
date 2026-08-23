@@ -808,8 +808,10 @@ function printReceipt() {
   </style>
 </head>
 <body>
-  ${receiptHTML}
-  <div id="escpos-cut">${CUT_CMD}</div>
+  <div id="receipt-print-frame">
+    ${receiptHTML}
+    <div id="escpos-cut">${CUT_CMD}</div>
+  </div>
   <script>
     window.onload = function() {
       window.focus();
