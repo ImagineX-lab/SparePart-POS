@@ -264,9 +264,8 @@ function renderPosGrid() {
     return matchQ && matchC;
   });
   grid.innerHTML = list.length ? list.map(p => {
-    const fileName = p.image_path ? p.image_path.split('/').pop() : '';
-    const imgBlock = fileName
-      ? `<img src="/data/images/${esc(fileName)}" class="pos-thumb" alt="${esc(p.name)}"
+    const imgBlock = p.image_path
+      ? `<img src="/${esc(p.image_path)}" class="pos-thumb" alt="${esc(p.name)}"
            onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'pos-thumb-placeholder',textContent:'No image'}))">`
       : `<div class="pos-thumb-placeholder">No image</div>`;
     const zone = (p.stock <= 0) ? 'bad' : stockZone(p);
