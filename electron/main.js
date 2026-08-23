@@ -1,5 +1,6 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const http = require('http');
+const path = require('path');
 
 let mainWindow;
 
@@ -53,7 +54,8 @@ function createWindow(port) {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: true,
+      preload: path.join(__dirname, 'preload.js')
     }
   });
 
@@ -89,4 +91,15 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Listen for print request from renderer process
+ipcMain.on('print-requested', (event) => {
+  const webContents = event.sender;
+  webContents.print({
+    silent: false,
+    printBackground: true
+  }, (success, errorType) => {
+    if (!success) console.error('Failed to print receipt:', errorType);
+  });
 });
