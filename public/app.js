@@ -755,6 +755,87 @@ async function createBackup() {
   }
 }
 
+
+/* ---------- SILENT PRINT (no browser print-dialog on main window) ---------- */
+/**
+ * Opens a tiny popup, injects the receipt HTML, and calls print() on the popup.
+ * The popup auto-closes after the print job is dispatched.
+ * For Xprinter / 80mm thermal printers the @page CSS sets size:80mm auto with 0 margin.
+ * An ESC/POS GS V 1 (full cut) character is appended as a hidden element so that
+ * printers configured with "print to port" (raw mode) receive the cut command.
+ */
+function printReceipt() {
+  const printArea = document.getElementById('print-area');
+  if (!printArea) return;
+  const receiptHTML = printArea.innerHTML;
+
+  // Gather all <link> and relevant <style> tags from the main document
+  const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+    .map(l => `<link rel="stylesheet" href="${l.href}">`)
+    .join('\n');
+
+  // ESC/POS Full-cut command: GS V m  (0x1D 0x56 0x01)
+  // Embedded as a hidden data URI trigger for raw-capable drivers.
+  // Most Windows Xprinter drivers honour this when the port is set to "Generic / Text Only".
+  const CUT_CMD = '\x1d\x56\x01'; // GS V 1 — full cut
+
+  const popupHTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Print Receipt</title>
+  ${styleLinks}
+  <style>
+    @page { size: 80mm auto; margin: 0 !important; }
+    html, body { width: 80mm; margin: 0; padding: 0; background: #fff; }
+    body { padding: 2mm; box-sizing: border-box; }
+    .modal-actions, button { display: none !important; }
+    * { color: #000 !important; background: transparent !important;
+        text-shadow: none !important; box-shadow: none !important; }
+    .receipt { width: 100% !important; max-width: none !important;
+               padding: 0 !important; margin: 0 !important; }
+    .r-watermark { display: none !important; }
+    .r-shop-logo { max-width: 60px !important; max-height: 60px !important; }
+    .r-shop-name { font-size: 16pt !important; }
+    .r-totals-row.grand { font-size: 16pt !important; }
+    .r-items-table { width: 100% !important; table-layout: fixed !important;
+                     border-collapse: collapse !important; }
+    .r-items-table th, .r-items-table td { padding: 4px 2px !important;
+                                           font-size: 10pt !important; }
+    /* ESC/POS cut placeholder — visible to raw drivers */
+    #escpos-cut { font-family: monospace; font-size: 1px;
+                  color: white; height: 0; overflow: hidden; }
+  </style>
+</head>
+<body>
+  ${receiptHTML}
+  <div id="escpos-cut">${CUT_CMD}</div>
+  <script>
+    window.onload = function() {
+      window.focus();
+      window.print();
+      // Close popup after print dialog resolves (works for most browsers)
+      window.onafterprint = function() { window.close(); };
+      // Fallback close after 3 seconds in case onafterprint doesn't fire
+      setTimeout(function() { try { window.close(); } catch(e){} }, 3000);
+    };
+  <\/script>
+</body>
+</html>`;
+
+  const popup = window.open('', '_blank',
+    'width=340,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
+  if (!popup) {
+    // Popup blocked — fall back to window.print()
+    showToast('Popup blocked. Using browser print instead...');
+    window.print();
+    return;
+  }
+  popup.document.open();
+  popup.document.write(popupHTML);
+  popup.document.close();
+}
+
 /* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
