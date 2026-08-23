@@ -639,7 +639,7 @@ function showReceipt(sale) {
       })()}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
-      <div class="r-shop-note">Trusted automotive parts, accessories, and service essentials for every journey.</div>
+      <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
       <div class="r-meta-row">
         <span class="r-meta-label">Bill No</span>
         <span class="r-meta-value">${String(sale.id).padStart(4, '0')}</span>
@@ -667,10 +667,10 @@ function showReceipt(sale) {
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
-      <div class="r-disclaimer">Please inspect parts before installation and keep your receipt for warranty support.</div>
+      <div class="r-disclaimer">අලෙවිකරණ ලද වාහන, විදුලි උපංග නැවත භාරගනු නොලැබේ.</div>
       <div class="r-thank-you">Thank you for your business!</div>
       <div class="r-software-credit">
-        KN Motors • Automotive Parts & Accessories
+        ImagineX software solution - 0761945587
       </div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
@@ -763,8 +763,6 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
-  document.getElementById('sidefoot').textContent = settings.shop_name || DEFAULT_SHOP_NAME;
-  
   // Apply font size class
   document.body.classList.remove('fs-small', 'fs-medium', 'fs-large', 'fs-xl');
   if (settings.ui_font_size) {
