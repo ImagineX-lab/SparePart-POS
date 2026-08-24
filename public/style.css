@@ -66,7 +66,7 @@ input, select { font-family: inherit; }
 #sidebar {
   width: 60px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, var(--g-navy-1), var(--g-navy-2));
+  background: var(--g-navy-1);
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -217,7 +217,7 @@ nav {
 header.topbar {
   background: var(--panel);
   border-bottom: 1px solid var(--line);
-  border-left: 4px solid var(--g-navy-1);
+  border-left: 1px solid var(--line);
   padding: 16px 26px;
   display: flex;
   align-items: center;
