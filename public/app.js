@@ -661,7 +661,6 @@ function showReceipt(sale) {
         </tbody>
       </table>
       <div class="r-divider-dashed"></div>
-      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal}</span></div>
       <div class="r-totals-row grand"><span>Total</span><span>${total}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
@@ -787,14 +786,14 @@ function printReceipt() {
   <title>Print Receipt</title>
   ${styleLinks}
   <style>
-    @page { size: 80mm auto; margin: 0mm !important; }
-    html, body { width: 100%; margin: 0 !important; padding: 0 !important; background: #fff; }
-    body { box-sizing: border-box; }
+    @page { margin: 0; size: auto; }
+    html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
+    #receipt-print-frame { margin: 0; padding: 0; }
     .modal-actions, button { display: none !important; }
     * { color: #000 !important; background: transparent !important;
         text-shadow: none !important; box-shadow: none !important; }
     .receipt { width: 100% !important; max-width: none !important;
-               padding: 0 !important; margin: 0 !important; }
+               padding: 0 !important; margin: 0 !important; border: none !important; }
     .r-watermark { display: none !important; }
     .r-shop-logo { max-width: 60px !important; max-height: 60px !important; }
     .r-shop-name { font-size: 16pt !important; }
