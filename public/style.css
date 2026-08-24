@@ -527,8 +527,9 @@ select, .field input {
 }
 
 /* Totals / payment */
-.receipt .r-totals-row { display: flex; justify-content: space-between;
+.receipt .r-totals-row { display: flex; justify-content: flex-start;
                          font-size: calc(13px * var(--fs-scale)); padding: 3px 0; }
+.receipt .r-totals-row span:first-child { flex: 1; }
 .receipt .r-totals-row span:last-child { width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
 .receipt .r-totals-row.grand { font-family: 'Barlow Condensed', sans-serif;
                                 font-size: calc(22px * var(--fs-scale));
@@ -536,8 +537,9 @@ select, .field input {
 /* The grand total value should use Barlow Condensed to match the label but still be aligned */
 .receipt .r-totals-row.grand span:last-child { font-family: 'Barlow Condensed', sans-serif; }
 
-.receipt .r-payment-row  { display: flex; justify-content: space-between;
+.receipt .r-payment-row  { display: flex; justify-content: flex-start;
                            font-size: calc(12.5px * var(--fs-scale)); padding: 3px 0; color: #222; }
+.receipt .r-payment-row span:first-child { flex: 1; }
 .receipt .r-payment-row span:last-child { width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
 .receipt .r-disclaimer   { text-align: center; font-family: 'Inter', sans-serif;
                            font-size: calc(12px * var(--fs-scale)); font-weight: 800;

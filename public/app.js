@@ -661,7 +661,6 @@ function showReceipt(sale) {
         </tbody>
       </table>
       <div class="r-divider-dashed"></div>
-      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal}</span></div>
       <div class="r-totals-row grand"><span>Total</span><span>${total}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
