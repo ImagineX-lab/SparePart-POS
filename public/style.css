@@ -562,9 +562,9 @@ select, .field input {
 
 /* ── 16. PRINT MEDIA — 80mm Thermal ─────────── */
 @media print {
-  @page { size: 80mm auto; margin: 0 !important; }
+  @page { size: 80mm auto; margin: 0mm !important; }
   html, body {
-    width: 80mm !important; margin: 0 !important; padding: 0 !important;
+    width: 100% !important; margin: 0 !important; padding: 0 !important;
     background: #fff !important; color: #000 !important;
     height: auto !important; overflow: visible !important;
   }
@@ -572,7 +572,7 @@ select, .field input {
   #receipt-print-frame,
   #receipt-modal-container     { display: block !important; position: absolute !important;
                                   left: 0 !important; top: 0 !important;
-                                  width: 80mm !important; padding: 2mm !important;
+                                  width: 100% !important; padding: 0 !important;
                                   box-sizing: border-box !important;
                                   background: #fff !important; box-shadow: none !important; border: none !important; }
   #receipt-modal-container .modal { display: block !important; background: #fff !important;

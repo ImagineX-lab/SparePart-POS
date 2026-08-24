@@ -673,8 +673,9 @@ function showReceipt(sale) {
       </div>
     </div>`;
   document.getElementById('print-area').innerHTML = html;
-  openModal('receipt-modal-container');
+  printReceipt();
 }
+
 
 
 
@@ -786,9 +787,9 @@ function printReceipt() {
   <title>Print Receipt</title>
   ${styleLinks}
   <style>
-    @page { size: 80mm auto; margin: 0 !important; }
-    html, body { width: 80mm; margin: 0; padding: 0; background: #fff; }
-    body { padding: 2mm; box-sizing: border-box; }
+    @page { size: 80mm auto; margin: 0mm !important; }
+    html, body { width: 100%; margin: 0 !important; padding: 0 !important; background: #fff; }
+    body { box-sizing: border-box; }
     .modal-actions, button { display: none !important; }
     * { color: #000 !important; background: transparent !important;
         text-shadow: none !important; box-shadow: none !important; }
