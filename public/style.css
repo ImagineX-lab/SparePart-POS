@@ -530,7 +530,7 @@ select, .field input {
 .receipt .r-totals-row { display: flex; justify-content: flex-start;
                          font-size: calc(13px * var(--fs-scale)); padding: 3px 0; }
 .receipt .r-totals-row span:first-child { flex: 1; }
-.receipt .r-totals-row span:last-child { width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
+.receipt .r-totals-row span:last-child { width: auto; white-space: nowrap; flex-shrink: 0; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
 .receipt .r-totals-row.grand { font-family: 'Barlow Condensed', sans-serif;
                                 font-size: calc(22px * var(--fs-scale));
                                 font-weight: 800; color: #111; padding: 5px 0 3px; }
@@ -540,7 +540,7 @@ select, .field input {
 .receipt .r-payment-row  { display: flex; justify-content: flex-start;
                            font-size: calc(12.5px * var(--fs-scale)); padding: 3px 0; color: #222; }
 .receipt .r-payment-row span:first-child { flex: 1; }
-.receipt .r-payment-row span:last-child { width: 30%; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
+.receipt .r-payment-row span:last-child { width: auto; white-space: nowrap; flex-shrink: 0; text-align: right; font-family: 'JetBrains Mono', monospace; padding: 0 2px; }
 .receipt .r-disclaimer   { text-align: center; font-family: 'Inter', sans-serif;
                            font-size: calc(12px * var(--fs-scale)); font-weight: 800;
                            color: #111; margin: 6px 0 4px; }

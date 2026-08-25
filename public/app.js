@@ -689,8 +689,10 @@ function updateLogoSizeDisplay(val) {
 function renderSettingsForm() {
   document.getElementById('setShopName').value = settings.shop_name || '';
   document.getElementById('setShopDesc').value = settings.shop_desc || '';
-  document.getElementById('setCurrency').value = settings.currency || '';
-  document.getElementById('setTax').value = settings.tax_rate || 0;
+  const curEl = document.getElementById('setCurrency');
+  if (curEl) curEl.value = settings.currency || '';
+  const taxEl = document.getElementById('setTax');
+  if (taxEl) taxEl.value = settings.tax_rate || 0;
   if (document.getElementById('setFontSize')) {
     document.getElementById('setFontSize').value = settings.ui_font_size || 'small';
   }
@@ -710,8 +712,10 @@ async function saveSettings() {
   const formData = new FormData();
   formData.append('shop_name', document.getElementById('setShopName').value.trim() || DEFAULT_SHOP_NAME);
   formData.append('shop_desc', document.getElementById('setShopDesc').value.trim() || DEFAULT_SHOP_DESC);
-  formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
-  formData.append('tax_rate', document.getElementById('setTax').value || 0);
+  const curEl = document.getElementById('setCurrency');
+  formData.append('currency', curEl ? (curEl.value.trim() || 'Rs.') : (settings.currency || 'Rs.'));
+  const taxEl = document.getElementById('setTax');
+  formData.append('tax_rate', taxEl ? (taxEl.value || 0) : (settings.tax_rate || 0));
   if (document.getElementById('setFontSize')) {
     formData.append('ui_font_size', document.getElementById('setFontSize').value);
   }
@@ -732,15 +736,16 @@ async function saveSettings() {
   updateShopUI();
 }
 async function resetAllData() {
-  const shopName = settings.shop_name || DEFAULT_SHOP_NAME;
-  const confirmText = prompt(`WARNING: This will permanently erase all parts and sales on the server.\n\nTo continue, please type your shop name: "${shopName}"`);
-  if (confirmText !== shopName) {
-    if (confirmText !== null) showToast('Reset cancelled: Shop name did not match.');
+  if (!confirm("අවධානයයි: මෙමගින් පද්ධතියේ ඇති සියලුම අයිතම (Parts) සහ අලෙවි වාර්තා (Sales) සදහටම මකා දැමෙයි.\n\nඔබට දත්ත නැවත සැකසීමට (Reset) අවශ්‍ය බව තහවුරුද?")) {
     return;
   }
-  await api('/reset', { method: 'POST' });
-  showToast('All data has been reset.');
-  await switchView('dashboard');
+  try {
+    await api('/reset', { method: 'POST' });
+    showToast('All data has been reset.');
+    await switchView('dashboard');
+  } catch (e) {
+    showToast(e.message || 'Reset failed');
+  }
 }
 async function createBackup() {
   const btn = document.getElementById('backupBtn');
@@ -812,30 +817,31 @@ function printReceipt() {
     ${receiptHTML}
     <div id="escpos-cut">${CUT_CMD}</div>
   </div>
-  <script>
-    window.onload = function() {
-      window.focus();
-      window.print();
-      // Close popup after print dialog resolves (works for most browsers)
-      window.onafterprint = function() { window.close(); };
-      // Fallback close after 3 seconds in case onafterprint doesn't fire
-      setTimeout(function() { try { window.close(); } catch(e){} }, 3000);
-    };
-  <\/script>
 </body>
 </html>`;
 
-  const popup = window.open('', '_blank',
-    'width=340,height=600,menubar=no,toolbar=no,location=no,status=no,scrollbars=yes');
-  if (!popup) {
-    // Popup blocked — fall back to window.print()
-    showToast('Popup blocked. Using browser print instead...');
-    window.print();
-    return;
-  }
-  popup.document.open();
-  popup.document.write(popupHTML);
-  popup.document.close();
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'absolute';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+
+  iframe.contentWindow.document.open();
+  iframe.contentWindow.document.write(popupHTML);
+  iframe.contentWindow.document.close();
+
+  // Give it a moment to load styles before printing
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    // Remove the iframe after printing (give enough time for print dialog)
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+      }
+    }, 10000);
+  }, 250);
 }
 
 /* ---------- MODAL HELPERS ---------- */
