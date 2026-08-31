@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, webContents } = require('electron');
 const http = require('http');
 const path = require('path');
 
@@ -93,13 +93,74 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-// Listen for print request from renderer process
-ipcMain.on('print-requested', (event) => {
-  const webContents = event.sender;
-  webContents.print({
-    silent: false,
-    printBackground: true
-  }, (success, errorType) => {
-    if (!success) console.error('Failed to print receipt:', errorType);
+// ── Silent thermal print ────────────────────────────────────────────────────
+// The renderer sends 'print-receipt-html' with the full HTML string of the
+// receipt.  We spin up a hidden BrowserWindow, load that HTML, wait for it
+// to finish painting, then fire webContents.print() with silent:true so
+// Windows never shows a dialog.  The window is destroyed afterwards.
+
+
+ipcMain.handle('get-printers', async (event) => {
+  try {
+    const list = await event.sender.getPrintersAsync();
+    return list.map(p => p.name);
+  } catch (e) {
+    return [];
+  }
+});
+
+ipcMain.on('print-receipt-html', (event, htmlContent) => {
+  // Create a hidden off-screen window to host the receipt HTML
+  const printWin = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
+    }
   });
+
+  // Load the receipt HTML as a data URL so it has no cross-origin restrictions
+  const encoded = Buffer.from(htmlContent, 'utf8').toString('base64');
+  printWin.loadURL(`data:text/html;base64,${encoded}`);
+
+  printWin.webContents.once('did-finish-load', () => {
+    // Minimal options — let the Windows Default Printer ('Pos Printer') and its
+    // driver handle page bounds.  Passing custom pageSize / margins / deviceName
+    // causes "Invalid printer settings" errors with thermal printer drivers.
+    const printOptions = {
+      silent: true,          // no Windows print dialog
+      printBackground: true,
+      deviceName: ''         // empty → OS routes to the Default Printer
+    };
+
+    printWin.webContents.print(printOptions, (success, errorType) => {
+      if (!success) {
+        console.error('[print] Silent Print Failed:', errorType);
+        event.sender.send('print-result', { success: false, errorType });
+      } else {
+        console.log('[print] Job dispatched successfully.');
+        event.sender.send('print-result', { success: true });
+      }
+      printWin.destroy();
+    });
+  });
+
+  // Safety: destroy the window if it takes too long (e.g. driver stall)
+  setTimeout(() => {
+    if (!printWin.isDestroyed()) {
+      console.warn('[print] Timed out waiting for receipt window — destroying.');
+      printWin.destroy();
+    }
+  }, 15000);
+});
+
+// Legacy handler kept for backward compatibility (no-op redirect)
+ipcMain.on('print-requested', (event) => {
+  // Forward to the silent path using the current page HTML
+  event.sender.executeJavaScript(
+    'document.getElementById("print-area")?.innerHTML || ""'
+  ).then(html => {
+    if (html) event.sender.send('trigger-print-with-html', html);
+  }).catch(() => {});
 });

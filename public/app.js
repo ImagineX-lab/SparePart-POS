@@ -671,8 +671,13 @@ function showReceipt(sale) {
         ImagineX software solution - 0761945587
       </div>
     </div>`;
+
+  // Put HTML into both the hidden print-area (for printReceipt()) and the visible preview body
   document.getElementById('print-area').innerHTML = html;
-  printReceipt();
+  document.getElementById('receiptPreviewBody').innerHTML = html;
+
+  // Open the preview modal — no printing happens here
+  openModal('receiptPreviewModalBg');
 }
 
 
@@ -761,37 +766,42 @@ async function createBackup() {
 }
 
 
-/* ---------- SILENT PRINT (no browser print-dialog on main window) ---------- */
+/* ---------- THERMAL PRINT (1-click, no dialog) ---------- */
 /**
- * Opens a tiny popup, injects the receipt HTML, and calls print() on the popup.
- * The popup auto-closes after the print job is dispatched.
- * For Xprinter / 80mm thermal printers the @page CSS sets size:80mm auto with 0 margin.
- * An ESC/POS GS V 1 (full cut) character is appended as a hidden element so that
- * printers configured with "print to port" (raw mode) receive the cut command.
+ * Builds a self-contained receipt HTML document and either:
+ *   a) sends it to the Electron main process via IPC for silent printing
+ *      (no Windows print dialog; targets XP-80 or the system default printer), OR
+ *   b) falls back to an iframe + window.print() when running in a normal browser.
+ *
+ * For 80 mm thermal printers:
+ *   • @page sets size:80mm auto with 0 margins.
+ *   • ESC/POS GS V 1 (full cut) is embedded as a hidden element.
  */
-function printReceipt() {
+function buildReceiptDocument() {
   const printArea = document.getElementById('print-area');
-  if (!printArea) return;
+  if (!printArea) return null;
+
   const receiptHTML = printArea.innerHTML;
 
-  // Gather all <link> and relevant <style> tags from the main document
+  // Carry all stylesheet links into the print document so receipt styles apply
   const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
     .map(l => `<link rel="stylesheet" href="${l.href}">`)
     .join('\n');
 
-  // ESC/POS Full-cut command: GS V m  (0x1D 0x56 0x01)
-  // Embedded as a hidden data URI trigger for raw-capable drivers.
-  // Most Windows Xprinter drivers honour this when the port is set to "Generic / Text Only".
-  const CUT_CMD = '\x1d\x56\x01'; // GS V 1 — full cut
+  // Resolve relative URLs to absolute so the hidden BrowserWindow can fetch them
+  const base = window.location.origin;
 
-  const popupHTML = `<!DOCTYPE html>
+  const CUT_CMD = '\x1d\x56\x01'; // ESC/POS GS V 1 — full cut
+
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
+  <base href="${base}/">
   <title>Print Receipt</title>
   ${styleLinks}
   <style>
-    @page { margin: 0; size: auto; }
+    @page { margin: 0; }
     html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
     #receipt-print-frame { margin: 0; padding: 0; }
     .modal-actions, button { display: none !important; }
@@ -807,7 +817,6 @@ function printReceipt() {
                      border-collapse: collapse !important; }
     .r-items-table th, .r-items-table td { padding: 4px 2px !important;
                                            font-size: 10pt !important; }
-    /* ESC/POS cut placeholder — visible to raw drivers */
     #escpos-cut { font-family: monospace; font-size: 1px;
                   color: white; height: 0; overflow: hidden; }
   </style>
@@ -819,27 +828,42 @@ function printReceipt() {
   </div>
 </body>
 </html>`;
+}
 
+function printReceipt() {
+  const doc = buildReceiptDocument();
+  if (!doc) return;
+
+  // ── Electron path: silent IPC print, no dialog ─────────────────────────────
+  if (window.electronAPI && typeof window.electronAPI.printReceiptHtml === 'function') {
+    // Subscribe once to the result event to show a toast on failure
+    const unsub = window.electronAPI.onPrintResult((result) => {
+      unsub();
+      if (!result.success) {
+        showToast(`Print failed: ${result.errorType || 'unknown error'}`);
+      } else {
+        showToast('Receipt printed ✓');
+      }
+    });
+
+    window.electronAPI.printReceiptHtml(doc);
+    return; // done — no dialog will appear
+  }
+
+  // ── Browser fallback: iframe + window.print() (shows OS print dialog) ──────
   const iframe = document.createElement('iframe');
-  iframe.style.position = 'absolute';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
+  iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;';
   document.body.appendChild(iframe);
 
   iframe.contentWindow.document.open();
-  iframe.contentWindow.document.write(popupHTML);
+  iframe.contentWindow.document.write(doc);
   iframe.contentWindow.document.close();
 
-  // Give it a moment to load styles before printing
   setTimeout(() => {
     iframe.contentWindow.focus();
     iframe.contentWindow.print();
-    // Remove the iframe after printing (give enough time for print dialog)
     setTimeout(() => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
     }, 10000);
   }, 250);
 }

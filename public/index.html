@@ -284,6 +284,32 @@
 
   <div id="print-area" class="receipt" style="display:none;"></div>
 
+  <!-- Receipt Preview Modal -->
+  <div class="modal-bg" id="receiptPreviewModalBg">
+    <div class="modal wide" style="max-width:420px; padding:0; overflow:hidden;">
+      <!-- Header bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between;
+                  padding:14px 18px; border-bottom:1px solid var(--border,#2a2a2a);">
+        <span style="font-family:'Barlow Condensed',sans-serif; font-size:1.1rem;
+                     text-transform:uppercase; letter-spacing:.05em; font-weight:700;">
+          Bill Preview
+        </span>
+        <button class="btn btn-sm" onclick="closeModal('receiptPreviewModalBg')"
+                style="padding:4px 10px; font-size:.8rem;">✕ Close</button>
+      </div>
+      <!-- Scrollable receipt body -->
+      <div id="receiptPreviewBody"
+           style="max-height:70vh; overflow-y:auto; padding:18px; background:#fff; color:#000;">
+      </div>
+      <!-- Footer actions -->
+      <div class="modal-actions" style="padding:12px 18px; border-top:1px solid var(--border,#2a2a2a); margin:0;">
+        <button class="btn" onclick="closeModal('receiptPreviewModalBg')">Close</button>
+        <button class="btn btn-accent" id="receiptPreviewPrintBtn" onclick="printReceipt()">🖨 Print</button>
+      </div>
+    </div>
+  </div>
+
+
   <div class="toast" id="toast"></div>
 
   <script src="i18n.js"></script>
