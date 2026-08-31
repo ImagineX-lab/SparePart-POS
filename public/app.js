@@ -33,7 +33,9 @@ async function apiFormData(path, options = {}) {
 /* ---------- LOCAL CACHES (kept in sync with the server) ---------- */
 let partsCache = [];
 
-let settings = { shop_name: 'My Spare Parts Shop', currency: 'Rs.', tax_rate: 0 };
+const DEFAULT_SHOP_NAME = 'KN Motors';
+const DEFAULT_SHOP_DESC = 'Automotive spare parts & accessories';
+let settings = { shop_name: DEFAULT_SHOP_NAME, shop_desc: DEFAULT_SHOP_DESC, currency: 'Rs.', tax_rate: 0 };
 let cart = []; // {partId, qty}
 // track recent quantity changes to allow visual highlighting (e.g., qty decreased)
 let lastQtyChange = {}; // partId -> { delta: number, ts: epoch }
@@ -128,15 +130,18 @@ function gaugeHtml(part) {
 
 /* ---------- NAV ---------- */
 const NAV = [
-  { id: 'dashboard', label: '🏠 මුල් පිටුව', sub: "Today's snapshot" },
-  { id: 'pos', label: '🛍️ විකුණුම්', sub: 'Ring up a sale' },
-  { id: 'inventory', label: '📦 තොග', sub: 'Manage your parts catalog' },
-  { id: 'history', label: '🧾 බිල්', sub: 'Past transactions' },
-  { id: 'settings', label: '⚙️ සැකසුම්', sub: 'Shop configuration' }
+  { id: 'pos',       icon: '🛒', label: 'විකුණුම්',  sub: 'Ring up a sale' },
+  { id: 'dashboard', icon: '🏠', label: 'මුල් පිටුව', sub: "Today's snapshot" },
+  { id: 'inventory', icon: '📦', label: 'තොග',        sub: 'Manage your parts catalog' },
+  { id: 'history',   icon: '🧾', label: 'බිල්',       sub: 'Past transactions' },
+  { id: 'settings',  icon: '⚙️', label: 'සැකසුම්',   sub: 'Shop configuration' }
 ];
 function renderNav() {
   document.getElementById('navlist').innerHTML = NAV.map(n =>
-    `<button class="navbtn navbtn-lg" id="nav-${n.id}" onclick="switchView('${n.id}')">${n.label}</button>`
+    `<button class="navbtn navbtn-lg" id="nav-${n.id}" onclick="switchView('${n.id}')">
+       <span class="nav-icon">${n.icon}</span>
+       <span class="nav-label">${n.label}</span>
+     </button>`
   ).join('');
 }
 async function switchView(id) {
@@ -264,9 +269,8 @@ function renderPosGrid() {
     return matchQ && matchC;
   });
   grid.innerHTML = list.length ? list.map(p => {
-    const fileName = p.image_path ? p.image_path.split('/').pop() : '';
-    const imgBlock = fileName
-      ? `<img src="/data/images/${esc(fileName)}" class="pos-thumb" alt="${esc(p.name)}"
+    const imgBlock = p.image_path
+      ? `<img src="/${esc(p.image_path)}" class="pos-thumb" alt="${esc(p.name)}"
            onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'pos-thumb-placeholder',textContent:'No image'}))">`
       : `<div class="pos-thumb-placeholder">No image</div>`;
     const zone = (p.stock <= 0) ? 'bad' : stockZone(p);
@@ -374,7 +378,7 @@ async function checkout() {
         amountReceived: received
       })
     });
-    showReceipt(sale);
+    showReceipt(sale, true); // Auto-print on checkout
     clearCart();
     await refreshParts();
     renderPosGrid();
@@ -614,7 +618,7 @@ function filterHistory() {
     </tr>`;
   }).join('') : `<tr><td colspan="6" class="empty">No sales yet. Completed sales will appear here.</td></tr>`;
 }
-function showReceipt(sale) {
+function showReceipt(sale, autoPrint = false) {
   const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
   const itemsHtml = sale.items.map(i => {
     return `
@@ -628,10 +632,6 @@ function showReceipt(sale) {
   const total = fmt(sale.total);
   const html = `
     <div class="receipt invoice">
-      ${(() => {
-        const logoUrl = settings.shop_logo ? `/${esc(settings.shop_logo)}` : '/logo.png';
-        return `<img src="${logoUrl}" class="r-watermark" alt="Watermark" /><img src="${logoUrl}" class="r-shop-logo" />`;
-      })()}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
@@ -657,20 +657,30 @@ function showReceipt(sale) {
         </tbody>
       </table>
       <div class="r-divider-dashed"></div>
-      <div class="r-totals-row"><span>Subtotal</span><span>${subtotal}</span></div>
       <div class="r-totals-row grand"><span>Total</span><span>${total}</span></div>
       <div class="r-payment-row"><span>Payment (${esc(sale.payment_method)})</span><span>${fmt(sale.amount_received)}</span></div>
       ${sale.payment_method === 'Cash' ? `<div class="r-payment-row"><span>Change</span><span>${fmt(sale.change_due)}</span></div>` : ''}
       <div class="r-divider-thick"></div>
-      <div class="r-disclaimer">අලෙවි කරන ලද වාහන විදුලි උපාංග නැවත භාරගනු නොලැබේ.</div>
+      <div class="r-disclaimer">අලෙවිකරණ ලද වාහන, විදුලි උපංග නැවත භාරගනු නොලැබේ.</div>
       <div class="r-thank-you">Thank you for your business!</div>
       <div class="r-software-credit">
-        imagineX software solution - 0761945587
+        ImagineX software solution - 0761945587
       </div>
     </div>`;
+
+  // Put HTML into the hidden print-area
   document.getElementById('print-area').innerHTML = html;
-  openModal('receipt-modal-container');
+
+  if (autoPrint) {
+    // Automatically print without showing the preview modal
+    printReceipt();
+  } else {
+    // Put HTML into the visible preview body and open the modal
+    document.getElementById('receiptPreviewBody').innerHTML = html;
+    openModal('receiptPreviewModalBg');
+  }
 }
+
 
 
 
@@ -685,8 +695,10 @@ function updateLogoSizeDisplay(val) {
 function renderSettingsForm() {
   document.getElementById('setShopName').value = settings.shop_name || '';
   document.getElementById('setShopDesc').value = settings.shop_desc || '';
-  document.getElementById('setCurrency').value = settings.currency || '';
-  document.getElementById('setTax').value = settings.tax_rate || 0;
+  const curEl = document.getElementById('setCurrency');
+  if (curEl) curEl.value = settings.currency || '';
+  const taxEl = document.getElementById('setTax');
+  if (taxEl) taxEl.value = settings.tax_rate || 0;
   if (document.getElementById('setFontSize')) {
     document.getElementById('setFontSize').value = settings.ui_font_size || 'small';
   }
@@ -704,10 +716,12 @@ function renderSettingsForm() {
 }
 async function saveSettings() {
   const formData = new FormData();
-  formData.append('shop_name', document.getElementById('setShopName').value.trim() || 'My Spare Parts Shop');
-  formData.append('shop_desc', document.getElementById('setShopDesc').value.trim());
-  formData.append('currency', document.getElementById('setCurrency').value.trim() || 'Rs.');
-  formData.append('tax_rate', document.getElementById('setTax').value || 0);
+  formData.append('shop_name', document.getElementById('setShopName').value.trim() || DEFAULT_SHOP_NAME);
+  formData.append('shop_desc', document.getElementById('setShopDesc').value.trim() || DEFAULT_SHOP_DESC);
+  const curEl = document.getElementById('setCurrency');
+  formData.append('currency', curEl ? (curEl.value.trim() || 'Rs.') : (settings.currency || 'Rs.'));
+  const taxEl = document.getElementById('setTax');
+  formData.append('tax_rate', taxEl ? (taxEl.value || 0) : (settings.tax_rate || 0));
   if (document.getElementById('setFontSize')) {
     formData.append('ui_font_size', document.getElementById('setFontSize').value);
   }
@@ -728,15 +742,16 @@ async function saveSettings() {
   updateShopUI();
 }
 async function resetAllData() {
-  const shopName = settings.shop_name || 'My Spare Parts Shop';
-  const confirmText = prompt(`WARNING: This will permanently erase all parts and sales on the server.\n\nTo continue, please type your shop name: "${shopName}"`);
-  if (confirmText !== shopName) {
-    if (confirmText !== null) showToast('Reset cancelled: Shop name did not match.');
+  if (!confirm("අවධානයයි: මෙමගින් පද්ධතියේ ඇති සියලුම අයිතම (Parts) සහ අලෙවි වාර්තා (Sales) සදහටම මකා දැමෙයි.\n\nඔබට දත්ත නැවත සැකසීමට (Reset) අවශ්‍ය බව තහවුරුද?")) {
     return;
   }
-  await api('/reset', { method: 'POST' });
-  showToast('All data has been reset.');
-  await switchView('dashboard');
+  try {
+    await api('/reset', { method: 'POST' });
+    showToast('All data has been reset.');
+    await switchView('dashboard');
+  } catch (e) {
+    showToast(e.message || 'Reset failed');
+  }
 }
 async function createBackup() {
   const btn = document.getElementById('backupBtn');
@@ -751,6 +766,109 @@ async function createBackup() {
   }
 }
 
+
+/* ---------- THERMAL PRINT (1-click, no dialog) ---------- */
+/**
+ * Builds a self-contained receipt HTML document and either:
+ *   a) sends it to the Electron main process via IPC for silent printing
+ *      (no Windows print dialog; targets XP-80 or the system default printer), OR
+ *   b) falls back to an iframe + window.print() when running in a normal browser.
+ *
+ * For 80 mm thermal printers:
+ *   • @page sets size:80mm auto with 0 margins.
+ *   • ESC/POS GS V 1 (full cut) is embedded as a hidden element.
+ */
+function buildReceiptDocument() {
+  const printArea = document.getElementById('print-area');
+  if (!printArea) return null;
+
+  const receiptHTML = printArea.innerHTML;
+
+  // Carry all stylesheet links into the print document so receipt styles apply
+  const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+    .map(l => `<link rel="stylesheet" href="${l.href}">`)
+    .join('\n');
+
+  // Resolve relative URLs to absolute so the hidden BrowserWindow can fetch them
+  const base = window.location.origin;
+
+  const CUT_CMD = '\x1d\x56\x01'; // ESC/POS GS V 1 — full cut
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <base href="${base}/">
+  <title>Print Receipt</title>
+  ${styleLinks}
+  <style>
+    @page { margin: 0; }
+    html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
+    #receipt-print-frame { margin: 0; padding: 0; }
+    .modal-actions, button { display: none !important; }
+    * { color: #000 !important; background: transparent !important;
+        text-shadow: none !important; box-shadow: none !important; }
+    .receipt { width: 100% !important; max-width: none !important;
+               padding: 0 !important; margin: 0 !important; border: none !important; }
+    .r-watermark { display: none !important; }
+    .r-shop-logo { max-width: 60px !important; max-height: 60px !important; }
+    .r-shop-name { font-size: 16pt !important; }
+    .r-totals-row.grand { font-size: 16pt !important; }
+    .r-items-table { width: 100% !important; table-layout: fixed !important;
+                     border-collapse: collapse !important; }
+    .r-items-table th, .r-items-table td { padding: 4px 2px !important;
+                                           font-size: 10pt !important; }
+    #escpos-cut { font-family: monospace; font-size: 1px;
+                  color: white; height: 0; overflow: hidden; }
+  </style>
+</head>
+<body>
+  <div id="receipt-print-frame">
+    ${receiptHTML}
+    <div id="escpos-cut">${CUT_CMD}</div>
+  </div>
+</body>
+</html>`;
+}
+
+function printReceipt() {
+  const doc = buildReceiptDocument();
+  if (!doc) return;
+
+  // ── Electron path: silent IPC print, no dialog ─────────────────────────────
+  if (window.electronAPI && typeof window.electronAPI.printReceiptHtml === 'function') {
+    // Subscribe once to the result event to show a toast on failure
+    const unsub = window.electronAPI.onPrintResult((result) => {
+      unsub();
+      if (!result.success) {
+        showToast(`Print failed: ${result.errorType || 'unknown error'}`);
+      } else {
+        showToast('Receipt printed ✓');
+      }
+    });
+
+    window.electronAPI.printReceiptHtml(doc);
+    return; // done — no dialog will appear
+  }
+
+  // ── Browser fallback: iframe + window.print() (shows OS print dialog) ──────
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:absolute;width:0;height:0;border:none;';
+  document.body.appendChild(iframe);
+
+  iframe.contentWindow.document.open();
+  iframe.contentWindow.document.write(doc);
+  iframe.contentWindow.document.close();
+
+  setTimeout(() => {
+    iframe.contentWindow.focus();
+    iframe.contentWindow.print();
+    setTimeout(() => {
+      if (document.body.contains(iframe)) document.body.removeChild(iframe);
+    }, 10000);
+  }, 250);
+}
+
 /* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
@@ -758,8 +876,6 @@ function closeModal(id) { document.getElementById(id).classList.remove('show'); 
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
-  document.getElementById('sidefoot').textContent = settings.shop_name || 'KN Motors';
-  
   // Apply font size class
   document.body.classList.remove('fs-small', 'fs-medium', 'fs-large', 'fs-xl');
   if (settings.ui_font_size) {
@@ -770,10 +886,10 @@ function updateShopUI() {
 
   const sidebarName = document.getElementById('sidebarName');
   if (sidebarName) {
-    if (settings.shop_name && settings.shop_name !== 'KN Motors') {
+    if (settings.shop_name && settings.shop_name !== DEFAULT_SHOP_NAME) {
       sidebarName.textContent = settings.shop_name;
     } else {
-      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : 'KN Motors'}</span>`;
+      sidebarName.innerHTML = `⚙ <span data-i18n="appTitle">${typeof t === 'function' ? t('appTitle') : DEFAULT_SHOP_NAME}</span>`;
     }
   }
 
@@ -815,7 +931,7 @@ async function init() {
   bindEvents();
   await refreshSettings();
   updateShopUI();
-  await switchView('dashboard');
+  await switchView('pos');
   tickClock();
   setInterval(tickClock, 1000);
 }

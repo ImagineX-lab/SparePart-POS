@@ -18,6 +18,8 @@
 <body>
 
   <div id="app">
+    <!-- thin trigger strip that opens the sidebar on hover -->
+    <div id="sidebar-trigger"></div>
     <aside id="sidebar">
       <div class="brand">
         <img id="sidebarLogo" class="brand-logo" src="/logo.png" alt="Shop Logo" style="display: block;" />
@@ -28,7 +30,6 @@
       </div>
       <!-- sidebar notification removed per request -->
       <nav id="navlist"></nav>
-      <div class="sidefoot" id="sidefoot"></div>
     </aside>
 
     <div id="main">
@@ -126,7 +127,7 @@
               <div style="display:flex;gap:8px;">
                 <button class="btn" style="flex:1" onclick="clearCart()" data-i18n="pos_clear">Clear</button>
                 <button class="btn btn-accent" style="flex:2" id="checkoutBtn" onclick="checkout()"
-                  data-i18n="pos_complete">Complete Sale</button>
+                  data-i18n="pos_complete">Print</button>
               </div>
             </div>
           </div>
@@ -197,10 +198,7 @@
                   <span id="logoSizeVal" style="min-width: 50px; font-weight: 600; font-size: 14px; text-align: right;">48px</span>
                 </div>
               </div>
-              <div class="field"><label data-i18n="set_currency">Currency symbol</label><input id="setCurrency"
-                  type="text"></div>
-              <div class="field"><label data-i18n="set_tax">Default tax rate %</label><input id="setTax" type="number"
-                  min="0" max="100"></div>
+
               <div class="field">
                 <label data-i18n="set_fontSize">UI Font Size</label>
                 <select id="setFontSize">
@@ -284,15 +282,33 @@
     </div>
   </div>
 
-  <div class="modal-bg" id="receipt-modal-container">
-    <div class="modal">
-      <div id="print-area" class="receipt"></div>
-      <div class="modal-actions" style="margin-top:14px;">
-        <button class="btn" onclick="closeModal('receipt-modal-container')" data-i18n="modal_close">Close</button>
-        <button class="btn btn-accent" onclick="window.print()" data-i18n="modal_print">Print</button>
+  <div id="print-area" class="receipt" style="display:none;"></div>
+
+  <!-- Receipt Preview Modal -->
+  <div class="modal-bg" id="receiptPreviewModalBg">
+    <div class="modal wide" style="max-width:420px; padding:0; overflow:hidden;">
+      <!-- Header bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between;
+                  padding:14px 18px; border-bottom:1px solid var(--border,#2a2a2a);">
+        <span style="font-family:'Barlow Condensed',sans-serif; font-size:1.1rem;
+                     text-transform:uppercase; letter-spacing:.05em; font-weight:700;">
+          Bill Preview
+        </span>
+        <button class="btn btn-sm" onclick="closeModal('receiptPreviewModalBg')"
+                style="padding:4px 10px; font-size:.8rem;">✕ Close</button>
+      </div>
+      <!-- Scrollable receipt body -->
+      <div id="receiptPreviewBody"
+           style="max-height:70vh; overflow-y:auto; padding:18px; background:#fff; color:#000;">
+      </div>
+      <!-- Footer actions -->
+      <div class="modal-actions" style="padding:12px 18px; border-top:1px solid var(--border,#2a2a2a); margin:0;">
+        <button class="btn" onclick="closeModal('receiptPreviewModalBg')">Close</button>
+        <button class="btn btn-accent" id="receiptPreviewPrintBtn" onclick="printReceipt()">🖨 Print</button>
       </div>
     </div>
   </div>
+
 
   <div class="toast" id="toast"></div>
 
@@ -309,6 +325,35 @@
       if(topBtn) topBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); showLowStockPanel(ev); });
       // close panel when clicking elsewhere
       document.addEventListener('click', ()=>{ const p = document.getElementById('notifPanel'); if(p) p.remove(); });
+
+      // ── Hover-to-show sidebar ──
+      const sidebar  = document.getElementById('sidebar');
+      const trigger  = document.getElementById('sidebar-trigger');
+      let closeTimer = null;
+
+      function openSidebar() {
+        clearTimeout(closeTimer);
+        sidebar.classList.add('sidebar-open');
+        // hide the trigger strip while sidebar is open
+        trigger.style.opacity = '0';
+        trigger.style.pointerEvents = 'none';
+      }
+      function closeSidebar() {
+        closeTimer = setTimeout(() => {
+          sidebar.classList.remove('sidebar-open');
+          trigger.style.opacity = '';
+          trigger.style.pointerEvents = '';
+        }, 120); // small delay prevents flicker when moving between trigger & sidebar
+      }
+
+      if (trigger) {
+        trigger.addEventListener('mouseenter', openSidebar);
+        trigger.addEventListener('mouseleave', closeSidebar);
+      }
+      if (sidebar) {
+        sidebar.addEventListener('mouseenter', openSidebar);
+        sidebar.addEventListener('mouseleave', closeSidebar);
+      }
     });
   </script>
 </body>
