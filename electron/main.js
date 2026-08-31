@@ -125,13 +125,14 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
   printWin.loadURL(`data:text/html;base64,${encoded}`);
 
   printWin.webContents.once('did-finish-load', () => {
-    // Minimal options — let the Windows Default Printer ('Pos Printer') and its
-    // driver handle page bounds.  Passing custom pageSize / margins / deviceName
-    // causes "Invalid printer settings" errors with thermal printer drivers.
+    // Minimal options — let the Windows Default Printer and its
+    // driver handle page bounds. We set silent: true so printing happens
+    // instantly without showing a print dialog, and we omit deviceName
+    // so Electron automatically defaults to the system default printer.
     const printOptions = {
-      silent: false,         // show Windows print dialog
+      silent: true,          // print silently (no dialog)
       printBackground: true,
-      deviceName: ''         // empty → OS routes to the Default Printer
+      usePrinterDefaultPageSize: true // use printer's configured paper size (e.g. 80mm roll)
     };
 
     printWin.webContents.print(printOptions, (success, errorType) => {
