@@ -378,7 +378,7 @@ async function checkout() {
         amountReceived: received
       })
     });
-    showReceipt(sale);
+    showReceipt(sale, true); // Auto-print on checkout
     clearCart();
     await refreshParts();
     renderPosGrid();
@@ -618,7 +618,7 @@ function filterHistory() {
     </tr>`;
   }).join('') : `<tr><td colspan="6" class="empty">No sales yet. Completed sales will appear here.</td></tr>`;
 }
-function showReceipt(sale) {
+function showReceipt(sale, autoPrint = false) {
   const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
   const itemsHtml = sale.items.map(i => {
     return `
@@ -672,12 +672,17 @@ function showReceipt(sale) {
       </div>
     </div>`;
 
-  // Put HTML into both the hidden print-area (for printReceipt()) and the visible preview body
+  // Put HTML into the hidden print-area
   document.getElementById('print-area').innerHTML = html;
-  document.getElementById('receiptPreviewBody').innerHTML = html;
 
-  // Open the preview modal — no printing happens here
-  openModal('receiptPreviewModalBg');
+  if (autoPrint) {
+    // Automatically print without showing the preview modal
+    printReceipt();
+  } else {
+    // Put HTML into the visible preview body and open the modal
+    document.getElementById('receiptPreviewBody').innerHTML = html;
+    openModal('receiptPreviewModalBg');
+  }
 }
 
 

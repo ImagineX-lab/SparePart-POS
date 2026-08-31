@@ -129,7 +129,7 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
     // driver handle page bounds.  Passing custom pageSize / margins / deviceName
     // causes "Invalid printer settings" errors with thermal printer drivers.
     const printOptions = {
-      silent: true,          // no Windows print dialog
+      silent: false,         // show Windows print dialog
       printBackground: true,
       deviceName: ''         // empty → OS routes to the Default Printer
     };
