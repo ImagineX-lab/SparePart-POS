@@ -632,10 +632,6 @@ function showReceipt(sale, autoPrint = false) {
   const total = fmt(sale.total);
   const html = `
     <div class="receipt invoice">
-      ${(() => {
-        const logoUrl = settings.shop_logo ? `/${esc(settings.shop_logo)}` : '/logo.png';
-        return `<img src="${logoUrl}" class="r-watermark" alt="Watermark" /><img src="${logoUrl}" class="r-shop-logo" />`;
-      })()}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>

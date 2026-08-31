@@ -125,14 +125,22 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
   printWin.loadURL(`data:text/html;base64,${encoded}`);
 
   printWin.webContents.once('did-finish-load', () => {
-    // Minimal options — let the Windows Default Printer ('Pos Printer') and its
-    // driver handle page bounds.  Passing custom pageSize / margins / deviceName
-    // causes "Invalid printer settings" errors with thermal printer drivers.
+    // Log available printers to the console for debugging
+    printWin.webContents.getPrintersAsync().then(printers => {
+      console.log('[print] Available printers:', printers.map(p => p.name));
+    }).catch(err => {
+      console.error('[print] Error getting printers:', err);
+    });
+
     const printOptions = {
-      silent: false,         // show Windows print dialog
-      printBackground: true,
-      deviceName: ''         // empty → OS routes to the Default Printer
+      silent: true,          // MUST BE TRUE for thermal printers to avoid 'invalid printer settings'
+      printBackground: true
+      // deviceName is omitted to avoid enumeration errors if empty
     };
+
+    if (!printOptions.silent) {
+      printWin.show();
+    }
 
     printWin.webContents.print(printOptions, (success, errorType) => {
       if (!success) {
