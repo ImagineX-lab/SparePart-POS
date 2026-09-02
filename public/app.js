@@ -843,13 +843,19 @@ function buildReceiptDocument() {
     .r-divider-thick { border: none !important; border-top: 2px solid #000 !important; margin: 5px 0 3px !important; }
     .r-divider-dashed { border: none !important; border-top: 1px dashed #000 !important; margin: 4px 0 !important; }
     .r-items-table {
+      display: table !important;
       width: 100% !important;
       table-layout: fixed !important;
       border-collapse: collapse !important;
       margin: 4px 0 !important;
+      box-sizing: border-box !important;
     }
+    .r-items-table thead { display: table-header-group !important; }
+    .r-items-table tbody { display: table-row-group !important; }
+    .r-items-table tr    { display: table-row !important; }
     .r-items-table th, .r-items-table td {
-      padding: 3px 2px !important;
+      display: table-cell !important;
+      padding: 3px 0 !important;
       font-size: 9pt !important;
       word-wrap: break-word !important;
       overflow-wrap: break-word !important;
@@ -857,20 +863,22 @@ function buildReceiptDocument() {
     }
     .r-items-table th {
       font-weight: 800 !important;
-      border-bottom: 1px solid #000 !important;
+      border-bottom: 2px solid #000 !important;
       padding-bottom: 3px !important;
     }
     .r-items-table tr.r-item-row td {
       border-bottom: 1px dotted #ccc !important;
     }
-    .r-item-name  { width: 50% !important; text-align: left !important; }
+    .r-item-name  { width: 52% !important; text-align: left !important; padding-left: 0 !important; }
     .r-item-qty   { width: 16% !important; text-align: center !important; font-family: 'JetBrains Mono', monospace !important; }
-    .r-item-price { width: 34% !important; text-align: right !important; font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums !important; white-space: nowrap !important; }
+    .r-item-price { width: 32% !important; text-align: right !important; font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums !important; white-space: nowrap !important; padding-right: 0 !important; }
     .r-totals-row {
       display: flex !important;
       justify-content: space-between !important;
       font-size: 9.5pt !important;
       padding: 2px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .r-totals-row.grand {
       font-size: 14pt !important;
@@ -880,16 +888,20 @@ function buildReceiptDocument() {
     .r-totals-row span:last-child {
       font-family: 'JetBrains Mono', monospace !important;
       text-align: right !important;
+      padding-right: 0 !important;
     }
     .r-payment-row {
       display: flex !important;
       justify-content: space-between !important;
       font-size: 8.5pt !important;
       padding: 1.5px 0 !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
     }
     .r-payment-row span:last-child {
       font-family: 'JetBrains Mono', monospace !important;
       text-align: right !important;
+      padding-right: 0 !important;
     }
     .r-disclaimer {
       text-align: center !important;
