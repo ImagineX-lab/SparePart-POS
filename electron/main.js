@@ -133,9 +133,11 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
     });
 
     const printOptions = {
-      silent: true,          // MUST BE TRUE for thermal printers to avoid 'invalid printer settings'
-      printBackground: true
-      // deviceName is omitted to avoid enumeration errors if empty
+      silent: true,
+      printBackground: true,
+      margins: { marginType: 'none' },
+      scaleFactor: 100,
+      pageSize: { width: 80000, height: 297000 } // microns: 80mm roll width
     };
 
     if (!printOptions.silent) {
@@ -170,5 +172,5 @@ ipcMain.on('print-requested', (event) => {
     'document.getElementById("print-area")?.innerHTML || ""'
   ).then(html => {
     if (html) event.sender.send('trigger-print-with-html', html);
-  }).catch(() => {});
+  }).catch(() => { });
 });

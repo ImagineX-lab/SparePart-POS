@@ -101,11 +101,11 @@ function showLowStockNotification(d) {
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
 }
-function formatShopName(name){
+function formatShopName(name) {
   const s = String(name || '');
-  if(!s) return '';
+  if (!s) return '';
   // take first two characters as initials and wrap them for special styling
-  const firstTwo = esc(s.slice(0,2));
+  const firstTwo = esc(s.slice(0, 2));
   const rest = esc(s.slice(2));
   return `<span class="r-shop-initials">${firstTwo}</span><span class="r-shop-rest">${rest}</span>`;
 }
@@ -130,11 +130,11 @@ function gaugeHtml(part) {
 
 /* ---------- NAV ---------- */
 const NAV = [
-  { id: 'pos',       icon: '🛒', label: 'විකුණුම්',  sub: 'Ring up a sale' },
+  { id: 'pos', icon: '🛒', label: 'විකුණුම්', sub: 'Ring up a sale' },
   { id: 'dashboard', icon: '🏠', label: 'මුල් පිටුව', sub: "Today's snapshot" },
-  { id: 'inventory', icon: '📦', label: 'තොග',        sub: 'Manage your parts catalog' },
-  { id: 'history',   icon: '🧾', label: 'බිල්',       sub: 'Past transactions' },
-  { id: 'settings',  icon: '⚙️', label: 'සැකසුම්',   sub: 'Shop configuration' }
+  { id: 'inventory', icon: '📦', label: 'තොග', sub: 'Manage your parts catalog' },
+  { id: 'history', icon: '🧾', label: 'බිල්', sub: 'Past transactions' },
+  { id: 'settings', icon: '⚙️', label: 'සැකසුම්', sub: 'Shop configuration' }
 ];
 function renderNav() {
   document.getElementById('navlist').innerHTML = NAV.map(n =>
@@ -161,10 +161,10 @@ async function switchView(id) {
 
 /* ---------- DATA REFRESH ---------- */
 async function refreshParts() { partsCache = await api('/parts'); }
-function setLowStockBadge(count){
+function setLowStockBadge(count) {
   const el = document.getElementById('topNotifCount');
-  if(!el) return;
-  if(count && count > 0){
+  if (!el) return;
+  if (count && count > 0) {
     el.textContent = String(count);
     el.style.display = 'inline-flex';
     el.classList.add('pulse');
@@ -174,17 +174,17 @@ function setLowStockBadge(count){
   }
 }
 
-async function showLowStockPanel(e){
+async function showLowStockPanel(e) {
   // toggle panel
   const existing = document.getElementById('notifPanel');
-  if(existing){ existing.remove(); return; }
+  if (existing) { existing.remove(); return; }
   // ensure partsCache is fresh
   await refreshParts();
-  const low = (partsCache||[]).filter(p => Number(p.stock) <= Number(p.threshold));
+  const low = (partsCache || []).filter(p => Number(p.stock) <= Number(p.threshold));
   const panel = document.createElement('div');
   panel.id = 'notifPanel';
   panel.className = 'notif-panel';
-  if(low.length === 0){
+  if (low.length === 0) {
     panel.innerHTML = `<div class="notif-head">Notifications</div><div class="notif-empty">No low-stock items</div>`;
   } else {
     panel.innerHTML = `<div class="notif-head">Low stock items (${low.length})</div>` +
@@ -193,7 +193,7 @@ async function showLowStockPanel(e){
   document.body.appendChild(panel);
   // position under clicked button (if event provided)
   const btn = e && e.currentTarget ? e.currentTarget : document.getElementById('topNotifBtn');
-  if(btn){
+  if (btn) {
     const r = btn.getBoundingClientRect();
     panel.style.left = Math.max(8, r.left) + 'px';
     panel.style.top = (r.bottom + 8) + 'px';
@@ -202,12 +202,12 @@ async function showLowStockPanel(e){
 
 // keep sidebar badge in sync after fetching parts
 const _refreshParts = refreshParts;
-refreshParts = async function(){
+refreshParts = async function () {
   await _refreshParts();
-  try{
-    const low = (partsCache||[]).filter(p => Number(p.stock) <= Number(p.threshold)).length;
+  try {
+    const low = (partsCache || []).filter(p => Number(p.stock) <= Number(p.threshold)).length;
     setLowStockBadge(low);
-  }catch(e){}
+  } catch (e) { }
 }
 
 async function refreshSettings() { settings = await api('/settings'); }
@@ -215,7 +215,7 @@ async function refreshSettings() { settings = await api('/settings'); }
 /* ---------- DASHBOARD ---------- */
 async function renderDashboard() {
   const d = await api('/dashboard');
-  
+
   // remove inline dashboard low-stock box; use a notification instead
   const notifArea = document.getElementById('dashNotificationArea');
   if (notifArea) notifArea.innerHTML = '';
@@ -620,12 +620,13 @@ function filterHistory() {
 }
 function showReceipt(sale, autoPrint = false) {
   const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
+  const cur = settings.currency || 'Rs.';
   const itemsHtml = sale.items.map(i => {
     return `
       <tr class="r-item-row">
         <td class="r-item-name">${esc(i.name)}</td>
         <td class="r-item-qty">${i.qty}</td>
-        <td class="r-item-price">${fmt(i.price * i.qty)}</td>
+        <td class="r-item-price">${(i.price * i.qty).toFixed(2)}</td>
       </tr>`;
   }).join('');
   const subtotal = fmt(sale.subtotal);
@@ -649,7 +650,7 @@ function showReceipt(sale, autoPrint = false) {
           <tr class="r-items-head">
             <th class="r-item-name">Item Name</th>
             <th class="r-item-qty">Qty</th>
-            <th class="r-item-price">Price</th>
+            <th class="r-item-price">${cur}</th>
           </tr>
         </thead>
         <tbody>
@@ -802,22 +803,112 @@ function buildReceiptDocument() {
   <title>Print Receipt</title>
   ${styleLinks}
   <style>
-    @page { margin: 0; }
-    html, body { margin: 0; padding: 0; background: #fff; width: 100%; }
-    #receipt-print-frame { margin: 0; padding: 0; }
+    @page { size: 80mm auto; margin: 0; }
+    html, body {
+      width: 80mm;
+      margin: 0;
+      padding: 0;
+      background: #fff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    #receipt-print-frame {
+      margin: 0 auto;
+      padding: 3mm 4mm 5mm 4mm;
+      width: 80mm;
+      max-width: 80mm;
+    }
     .modal-actions, button { display: none !important; }
-    * { color: #000 !important; background: transparent !important;
-        text-shadow: none !important; box-shadow: none !important; }
-    .receipt { width: 100% !important; max-width: none !important;
-               padding: 0 !important; margin: 0 !important; border: none !important; }
+    * {
+      color: #000 !important;
+      background: transparent !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
+    }
+    .receipt {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border: none !important;
+    }
     .r-watermark { display: none !important; }
-    .r-shop-logo { max-width: 60px !important; max-height: 60px !important; }
-    .r-shop-name { font-size: 16pt !important; }
-    .r-totals-row.grand { font-size: 16pt !important; }
-    .r-items-table { width: 100% !important; table-layout: fixed !important;
-                     border-collapse: collapse !important; }
-    .r-items-table th, .r-items-table td { padding: 4px 2px !important;
-                                           font-size: 10pt !important; }
+    .r-shop-logo { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; }
+    .r-shop-name { font-size: 15pt !important; line-height: 1.1 !important; text-align: center !important; font-weight: 800 !important; }
+    .r-shop-desc { font-size: 8.5pt !important; text-align: center !important; margin-bottom: 3px !important; }
+    .r-shop-note { font-size: 8pt !important; text-align: center !important; margin-bottom: 4px !important; line-height: 1.25 !important; }
+    .r-meta-row { font-size: 8.5pt !important; display: flex !important; justify-content: space-between !important; margin: 2px 0 !important; }
+    .r-divider-thick { border: none !important; border-top: 2px solid #000 !important; margin: 5px 0 3px !important; }
+    .r-divider-dashed { border: none !important; border-top: 1px dashed #000 !important; margin: 4px 0 !important; }
+    .r-items-table {
+      width: 100% !important;
+      table-layout: fixed !important;
+      border-collapse: collapse !important;
+      margin: 4px 0 !important;
+    }
+    .r-items-table th, .r-items-table td {
+      padding: 3px 2px !important;
+      font-size: 9pt !important;
+      word-wrap: break-word !important;
+      overflow-wrap: break-word !important;
+      white-space: normal !important;
+    }
+    .r-items-table th {
+      font-weight: 800 !important;
+      border-bottom: 1px solid #000 !important;
+      padding-bottom: 3px !important;
+    }
+    .r-items-table tr.r-item-row td {
+      border-bottom: 1px dotted #ccc !important;
+    }
+    .r-item-name  { width: 50% !important; text-align: left !important; }
+    .r-item-qty   { width: 16% !important; text-align: center !important; font-family: 'JetBrains Mono', monospace !important; }
+    .r-item-price { width: 34% !important; text-align: right !important; font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums !important; white-space: nowrap !important; }
+    .r-totals-row {
+      display: flex !important;
+      justify-content: space-between !important;
+      font-size: 9.5pt !important;
+      padding: 2px 0 !important;
+    }
+    .r-totals-row.grand {
+      font-size: 14pt !important;
+      font-weight: 800 !important;
+      padding: 4px 0 2px !important;
+    }
+    .r-totals-row span:last-child {
+      font-family: 'JetBrains Mono', monospace !important;
+      text-align: right !important;
+    }
+    .r-payment-row {
+      display: flex !important;
+      justify-content: space-between !important;
+      font-size: 8.5pt !important;
+      padding: 1.5px 0 !important;
+    }
+    .r-payment-row span:last-child {
+      font-family: 'JetBrains Mono', monospace !important;
+      text-align: right !important;
+    }
+    .r-disclaimer {
+      text-align: center !important;
+      font-size: 8pt !important;
+      font-weight: 700 !important;
+      margin: 5px 0 3px !important;
+      line-height: 1.25 !important;
+    }
+    .r-thank-you {
+      text-align: center !important;
+      font-size: 8.5pt !important;
+      font-style: italic !important;
+      margin: 3px 0 2px !important;
+    }
+    .r-software-credit {
+      text-align: center !important;
+      font-size: 7.5pt !important;
+      margin: 3px 0 6px !important;
+    }
     #escpos-cut { font-family: monospace; font-size: 1px;
                   color: white; height: 0; overflow: hidden; }
   </style>
@@ -872,7 +963,7 @@ function printReceipt() {
 /* ---------- MODAL HELPERS ---------- */
 function openModal(id) { document.getElementById(id).classList.add('show'); }
 function closeModal(id) { document.getElementById(id).classList.remove('show'); }
- 
+
 
 /* ---------- UI UPDATES ---------- */
 function updateShopUI() {
