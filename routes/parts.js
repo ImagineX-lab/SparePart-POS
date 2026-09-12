@@ -88,9 +88,24 @@ router.put('/:id', upload.single('image'), (req, res) => {
 });
 
 router.delete('/:id', (req, res) => {
-  const info = db.prepare('DELETE FROM parts WHERE id = ?').run(req.params.id);
-  if (info.changes === 0) return res.status(404).json({ error: 'Part not found' });
-  res.status(204).end();
+  try {
+    const existing = db.prepare('SELECT * FROM parts WHERE id = ?').get(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Part not found' });
+
+    if (existing.image_path) {
+      const imgPath = path.join(dataDir, 'data', 'images', path.basename(existing.image_path));
+      if (fs.existsSync(imgPath)) {
+        try { fs.unlinkSync(imgPath); } catch (err) { console.error('Failed to unlink image:', err); }
+      }
+    }
+
+    const info = db.prepare('DELETE FROM parts WHERE id = ?').run(req.params.id);
+    if (info.changes === 0) return res.status(404).json({ error: 'Part not found' });
+    res.status(204).end();
+  } catch (e) {
+    console.error('Error deleting part:', e);
+    res.status(500).json({ error: `Could not delete part: ${e.message}` });
+  }
 });
 
 // GET /api/parts/categories/list — distinct categories for the Add/Edit Part dropdown

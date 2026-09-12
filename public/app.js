@@ -493,7 +493,25 @@ async function deletePart(id) {
   if (!confirm('Delete this part? This cannot be undone.')) return;
   try {
     await api('/parts/' + id, { method: 'DELETE' });
-    await renderInventory();
+    // Remove deleted item from cart if present
+    cart = cart.filter(c => c.partId !== id);
+    // Refresh cached parts and low-stock badge
+    await refreshParts();
+    // Update inventory table
+    filterInventory();
+    // Update POS grid and category filter
+    renderPosGrid();
+    renderCategoryOptions();
+    renderCart();
+    // Close notification panel if open
+    const notifPanel = document.getElementById('notifPanel');
+    if (notifPanel) notifPanel.remove();
+    // Update dashboard if currently active
+    const dashView = document.getElementById('view-dashboard');
+    if (dashView && dashView.classList.contains('active')) {
+      await renderDashboard();
+    }
+    showToast('Part deleted successfully.');
   } catch (e) {
     showToast(e.message);
   }
