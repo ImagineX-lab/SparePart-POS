@@ -124,13 +124,15 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
   const encoded = Buffer.from(htmlContent, 'utf8').toString('base64');
   printWin.loadURL(`data:text/html;base64,${encoded}`);
 
-  printWin.webContents.once('did-finish-load', () => {
-    // Log available printers to the console for debugging
-    printWin.webContents.getPrintersAsync().then(printers => {
-      console.log('[print] Available printers:', printers.map(p => p.name));
-    }).catch(err => {
-      console.error('[print] Error getting printers:', err);
-    });
+  printWin.webContents.once('did-finish-load', async () => {
+    // Wait for fonts to finish loading so the receipt layout and monospace numbers are rendered accurately
+    try {
+      await printWin.webContents.executeJavaScript(`
+        document.fonts.ready.then(() => new Promise(resolve => setTimeout(resolve, 150)))
+      `);
+    } catch (e) {
+      await new Promise(r => setTimeout(r, 200));
+    }
 
     const printOptions = {
       silent: true,
