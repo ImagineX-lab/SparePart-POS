@@ -493,7 +493,25 @@ async function deletePart(id) {
   if (!confirm('Delete this part? This cannot be undone.')) return;
   try {
     await api('/parts/' + id, { method: 'DELETE' });
-    await renderInventory();
+    // Remove deleted item from cart if present
+    cart = cart.filter(c => c.partId !== id);
+    // Refresh cached parts and low-stock badge
+    await refreshParts();
+    // Update inventory table
+    filterInventory();
+    // Update POS grid and category filter
+    renderPosGrid();
+    renderCategoryOptions();
+    renderCart();
+    // Close notification panel if open
+    const notifPanel = document.getElementById('notifPanel');
+    if (notifPanel) notifPanel.remove();
+    // Update dashboard if currently active
+    const dashView = document.getElementById('view-dashboard');
+    if (dashView && dashView.classList.contains('active')) {
+      await renderDashboard();
+    }
+    showToast('Part deleted successfully.');
   } catch (e) {
     showToast(e.message);
   }
@@ -629,7 +647,6 @@ function showReceipt(sale, autoPrint = false) {
         <td class="r-item-price">${(i.price * i.qty).toFixed(2)}</td>
       </tr>`;
   }).join('');
-  const subtotal = fmt(sale.subtotal);
   const total = fmt(sale.total);
   const html = `
     <div class="receipt invoice">
@@ -648,9 +665,9 @@ function showReceipt(sale, autoPrint = false) {
       <table class="r-items-table">
         <thead>
           <tr class="r-items-head">
-            <th class="r-item-name">Item Name</th>
-            <th class="r-item-qty">Qty</th>
-            <th class="r-item-price">${cur}</th>
+            <th class="r-item-name">ITEM NAME</th>
+            <th class="r-item-qty">QTY</th>
+            <th class="r-item-price">${cur.toUpperCase()}</th>
           </tr>
         </thead>
         <tbody>
@@ -785,11 +802,6 @@ function buildReceiptDocument() {
 
   const receiptHTML = printArea.innerHTML;
 
-  // Carry all stylesheet links into the print document so receipt styles apply
-  const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-    .map(l => `<link rel="stylesheet" href="${l.href}">`)
-    .join('\n');
-
   // Resolve relative URLs to absolute so the hidden BrowserWindow can fetch them
   const base = window.location.origin;
 
@@ -801,31 +813,35 @@ function buildReceiptDocument() {
   <meta charset="UTF-8">
   <base href="${base}/">
   <title>Print Receipt</title>
-  ${styleLinks}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&family=Old+Standard+TT:wght@700&display=swap" rel="stylesheet">
   <style>
     @page { size: 80mm auto; margin: 0; }
     html, body {
-      width: 80mm;
+      width: 68mm;
+      max-width: 68mm;
       margin: 0;
       padding: 0;
       background: #fff;
+      color: #000;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     }
-    * { box-sizing: border-box; }
-    #receipt-print-frame {
-      margin: 0 auto;
-      padding: 3mm 4mm 5mm 4mm;
-      width: 80mm;
-      max-width: 80mm;
-    }
-    .modal-actions, button { display: none !important; }
     * {
+      box-sizing: border-box;
       color: #000 !important;
       background: transparent !important;
       text-shadow: none !important;
       box-shadow: none !important;
+    }
+    #receipt-print-frame {
+      margin: 0;
+      padding: 1mm 1.5mm 4mm 1mm;
+      width: 68mm;
+      max-width: 68mm;
+      box-sizing: border-box;
     }
     .receipt {
       width: 100% !important;
@@ -833,21 +849,56 @@ function buildReceiptDocument() {
       padding: 0 !important;
       margin: 0 !important;
       border: none !important;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      color: #000;
     }
     .r-watermark { display: none !important; }
     .r-shop-logo { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; }
-    .r-shop-name { font-size: 15pt !important; line-height: 1.1 !important; text-align: center !important; font-weight: 800 !important; }
-    .r-shop-desc { font-size: 8.5pt !important; text-align: center !important; margin-bottom: 3px !important; }
-    .r-shop-note { font-size: 8pt !important; text-align: center !important; margin-bottom: 4px !important; line-height: 1.25 !important; }
-    .r-meta-row { font-size: 8.5pt !important; display: flex !important; justify-content: space-between !important; margin: 2px 0 !important; }
-    .r-divider-thick { border: none !important; border-top: 2px solid #000 !important; margin: 5px 0 3px !important; }
-    .r-divider-dashed { border: none !important; border-top: 1px dashed #000 !important; margin: 4px 0 !important; }
+    .r-shop-name {
+      text-align: center !important;
+      font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif !important;
+      font-size: 16pt !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
+      line-height: 1.05 !important;
+      margin: 0 0 2px 0 !important;
+    }
+    .r-shop-initials { font-family: 'Old Standard TT', serif !important; font-weight: 700 !important; font-size: 1.1em !important; }
+    .r-shop-rest { margin-left: 2px !important; }
+    .r-shop-desc {
+      font-family: 'Inter', sans-serif !important;
+      font-size: 8pt !important;
+      text-align: center !important;
+      margin-bottom: 3px !important;
+      line-height: 1.2 !important;
+    }
+    .r-shop-note {
+      font-family: 'Iskoola Pota', 'Nirmala UI', 'Noto Sans Sinhala', 'Inter', sans-serif !important;
+      font-size: 7.5pt !important;
+      text-align: center !important;
+      margin-bottom: 4px !important;
+      line-height: 1.25 !important;
+    }
+    .r-meta-row {
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+      font-size: 8pt !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      margin: 2px 0 !important;
+      width: 100% !important;
+    }
+    .r-meta-label { font-family: 'Inter', sans-serif !important; font-weight: 600 !important; }
+    .r-meta-value { font-family: 'JetBrains Mono', 'Consolas', monospace !important; }
+    .r-divider-thick { border: none !important; border-top: 2px solid #000 !important; margin: 4px 0 3px !important; }
+    .r-divider-dashed { border: none !important; border-top: 1.5px dashed #000 !important; margin: 4px 0 !important; }
+    
     .r-items-table {
       display: table !important;
       width: 100% !important;
       table-layout: fixed !important;
       border-collapse: collapse !important;
-      margin: 4px 0 !important;
+      margin: 3px 0 !important;
       box-sizing: border-box !important;
     }
     .r-items-table thead { display: table-header-group !important; }
@@ -855,71 +906,116 @@ function buildReceiptDocument() {
     .r-items-table tr    { display: table-row !important; }
     .r-items-table th, .r-items-table td {
       display: table-cell !important;
-      padding: 3px 0 !important;
-      font-size: 9pt !important;
-      word-wrap: break-word !important;
-      overflow-wrap: break-word !important;
-      white-space: normal !important;
+      padding: 2.5px 0 !important;
+      vertical-align: top !important;
     }
     .r-items-table th {
       font-weight: 800 !important;
+      font-size: 8.5pt !important;
+      text-transform: uppercase !important;
       border-bottom: 2px solid #000 !important;
       padding-bottom: 3px !important;
     }
     .r-items-table tr.r-item-row td {
-      border-bottom: 1px dotted #ccc !important;
+      border-bottom: 1px dotted #888 !important;
+      font-size: 8.5pt !important;
     }
-    .r-item-name  { width: 52% !important; text-align: left !important; padding-left: 0 !important; }
-    .r-item-qty   { width: 16% !important; text-align: center !important; font-family: 'JetBrains Mono', monospace !important; }
-    .r-item-price { width: 32% !important; text-align: right !important; font-family: 'JetBrains Mono', monospace !important; font-variant-numeric: tabular-nums !important; white-space: nowrap !important; padding-right: 0 !important; }
+    .r-items-table tr.r-item-row:last-child td {
+      border-bottom: none !important;
+    }
+    .r-items-table th.r-item-name,
+    .r-items-table td.r-item-name {
+      width: 48% !important;
+      text-align: left !important;
+      padding-left: 0 !important;
+      font-family: 'Inter', sans-serif !important;
+      word-break: break-word !important;
+      white-space: normal !important;
+      line-height: 1.2 !important;
+    }
+    .r-items-table th.r-item-qty,
+    .r-items-table td.r-item-qty {
+      width: 14% !important;
+      text-align: center !important;
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+    }
+    .r-items-table th.r-item-price,
+    .r-items-table td.r-item-price {
+      width: 38% !important;
+      text-align: right !important;
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+      font-variant-numeric: tabular-nums !important;
+      white-space: nowrap !important;
+      padding-right: 1mm !important;
+    }
+
     .r-totals-row {
       display: flex !important;
       justify-content: space-between !important;
-      font-size: 9.5pt !important;
+      align-items: baseline !important;
+      font-size: 9pt !important;
       padding: 2px 0 !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
+    .r-totals-row span:first-child { flex: 1 !important; }
     .r-totals-row.grand {
-      font-size: 14pt !important;
+      font-size: 13pt !important;
       font-weight: 800 !important;
-      padding: 4px 0 2px !important;
+      padding: 3px 0 2px !important;
     }
-    .r-totals-row span:last-child {
-      font-family: 'JetBrains Mono', monospace !important;
+    .r-totals-row.grand span:first-child {
+      font-family: 'Inter', 'Barlow Condensed', sans-serif !important;
+      font-weight: 800 !important;
+    }
+    .r-totals-row.grand span:last-child {
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+      font-weight: 800 !important;
       text-align: right !important;
-      padding-right: 0 !important;
+      white-space: nowrap !important;
+      padding-right: 1mm !important;
+      font-variant-numeric: tabular-nums !important;
     }
+
     .r-payment-row {
       display: flex !important;
       justify-content: space-between !important;
-      font-size: 8.5pt !important;
-      padding: 1.5px 0 !important;
+      align-items: center !important;
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
+      font-size: 8pt !important;
+      padding: 1px 0 !important;
       width: 100% !important;
       box-sizing: border-box !important;
     }
+    .r-payment-row span:first-child { flex: 1 !important; }
     .r-payment-row span:last-child {
-      font-family: 'JetBrains Mono', monospace !important;
+      font-family: 'JetBrains Mono', 'Consolas', monospace !important;
       text-align: right !important;
-      padding-right: 0 !important;
+      white-space: nowrap !important;
+      padding-right: 1mm !important;
+      font-variant-numeric: tabular-nums !important;
     }
+
     .r-disclaimer {
       text-align: center !important;
-      font-size: 8pt !important;
+      font-family: 'Iskoola Pota', 'Nirmala UI', 'Noto Sans Sinhala', 'Inter', sans-serif !important;
+      font-size: 7.5pt !important;
       font-weight: 700 !important;
-      margin: 5px 0 3px !important;
+      margin: 4px 0 2px !important;
       line-height: 1.25 !important;
     }
     .r-thank-you {
       text-align: center !important;
-      font-size: 8.5pt !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 8pt !important;
       font-style: italic !important;
-      margin: 3px 0 2px !important;
+      margin: 2px 0 2px !important;
     }
     .r-software-credit {
       text-align: center !important;
-      font-size: 7.5pt !important;
-      margin: 3px 0 6px !important;
+      font-family: 'Inter', sans-serif !important;
+      font-size: 7pt !important;
+      margin: 2px 0 4px !important;
     }
     #escpos-cut { font-family: monospace; font-size: 1px;
                   color: white; height: 0; overflow: hidden; }
