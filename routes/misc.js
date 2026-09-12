@@ -69,7 +69,7 @@ router.get('/dashboard', (req, res) => {
 });
 
 router.post('/reset', (req, res) => {
-  db.exec('DELETE FROM sale_items; DELETE FROM sales; DELETE FROM parts;');
+  db.exec("DELETE FROM sale_items; DELETE FROM sales; DELETE FROM parts; DELETE FROM sqlite_sequence WHERE name IN ('sales', 'sale_items', 'parts');");
   
   // Get current shop logo to avoid deleting it
   let shopLogoFile = null;
