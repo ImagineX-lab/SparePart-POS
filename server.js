@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 
-require('./db'); // ensures schema + seed run before the server starts
+require('./db'); // ensures schema + settings setup before the server starts
 
 const partsRoutes = require('./routes/parts');
 const salesRoutes = require('./routes/sales');

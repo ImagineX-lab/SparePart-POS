@@ -17,8 +17,9 @@ if (process.versions && process.versions.electron) {
 
 const DB_PATH = path.join(dataDir, 'shop.db');
 const db = new DatabaseSync(DB_PATH);
-// Enable Write-Ahead Logging to reduce locking issues
+// Enable Write-Ahead Logging to reduce locking issues and enable foreign keys
 db.exec('PRAGMA journal_mode=WAL;');
+db.exec('PRAGMA foreign_keys = ON;');
 
 
   // Ensure data/images directory exists for storing uploaded images
@@ -83,24 +84,5 @@ try { db.exec("ALTER TABLE settings ADD COLUMN ui_font_size TEXT DEFAULT 'small'
 
 // Ensure a single settings row always exists
 db.prepare(`INSERT OR IGNORE INTO settings (id, shop_name, shop_desc, currency, tax_rate, logo_size, ui_font_size) VALUES (1, 'KN Motors', 'Automotive spare parts & accessories', 'Rs.', 0, 48, 'small')`).run();
-
-// Seed demo parts only on first run (empty catalog)
-const partCount = db.prepare('SELECT COUNT(*) AS c FROM parts').get().c;
-if (partCount === 0) {
-  const seed = [
-    ['Brake Pad Set - Front', 'BRK-1042', 'Brakes', 18.00, 32.00, 24, 5],
-    ['Brake Pad Set - Rear', 'BRK-1043', 'Brakes', 16.00, 28.00, 18, 5],
-    ['Engine Oil Filter', 'FLT-2210', 'Filters', 3.50, 7.50, 60, 10],
-    ['Air Filter - Standard', 'FLT-2233', 'Filters', 4.00, 8.50, 42, 10],
-    ['Spark Plug (single)', 'ELC-3305', 'Electrical', 2.20, 4.50, 120, 20],
-    ['12V Car Battery 45Ah', 'ELC-3390', 'Electrical', 55.00, 89.00, 6, 2],
-    ['Shock Absorber - Front', 'SUS-4410', 'Suspension', 34.00, 62.00, 10, 3],
-    ['Radiator Coolant 1L', 'FLU-5501', 'Fluids', 5.00, 9.50, 30, 8],
-    ['Headlight Bulb H4', 'ELC-3410', 'Electrical', 3.00, 6.00, 4, 10],
-    ['Timing Belt Kit', 'ENG-6601', 'Engine', 28.00, 54.00, 8, 3]
-  ];
-  const insert = db.prepare(`INSERT INTO parts (name, sku, category, cost, price, stock, threshold) VALUES (?,?,?,?,?,?,?)`);
-  for (const p of seed) insert.run(...p);
-}
 
 module.exports = db;

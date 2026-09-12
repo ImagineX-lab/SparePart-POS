@@ -280,9 +280,14 @@ header.topbar .icon-btn:hover { color: var(--accent); background: rgba(4,21,110,
 /* ── 7. KPI CARDS ───────────────────────────── */
 .cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
   margin-bottom: 20px;
+}
+@media (max-width: 1200px) {
+  .cards {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
 }
 .stat {
   border-radius: var(--radius);
@@ -304,7 +309,8 @@ header.topbar .icon-btn:hover { color: var(--accent); background: rgba(4,21,110,
 .cards .stat:nth-child(1) { background: linear-gradient(135deg, var(--g-navy-1),   var(--g-navy-2)); }
 .cards .stat:nth-child(2) { background: linear-gradient(135deg, var(--g-orange-1), var(--g-orange-2)); }
 .cards .stat:nth-child(3) { background: linear-gradient(135deg, var(--g-green-1),  var(--g-green-2)); }
-.cards .stat:nth-child(4) { background: linear-gradient(135deg, var(--g-navy-2),   var(--g-navy-1)); }
+.cards .stat:nth-child(4) { background: linear-gradient(135deg, #7C3AED,           #5B21B6); }
+.cards .stat:nth-child(5) { background: linear-gradient(135deg, #0EA5E9,           #0284C7); }
 
 /* ── 8. PANELS ──────────────────────────────── */
 .panel {
