@@ -471,7 +471,7 @@ select, .field input {
   letter-spacing: 0.06em; color: #111;
   margin-bottom: 0; line-height: 1.05;
 }
-.receipt .r-shop-logo { display: block; max-width: 80px; max-height: 80px; margin: 0 auto; }
+.receipt .r-shop-logo { display: block; max-width: 80px; max-height: 80px; margin: 0 auto 6px auto; object-fit: contain; }
 .receipt .r-shop-desc { text-align: center; font-family: 'Inter', sans-serif;
                         font-size: calc(12px * var(--fs-scale)); color: #444;
                         margin-bottom: 6px; white-space: pre-wrap; }
@@ -633,7 +633,7 @@ select, .field input {
   .receipt { width: 100% !important; max-width: 100% !important;
              padding: 0 !important; margin: 0 !important; border: none !important; }
   .receipt .r-watermark          { display: none !important; }
-  .receipt .r-shop-logo          { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; }
+  .receipt .r-shop-logo          { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; object-fit: contain !important; }
   .receipt .r-shop-name          { font-size: 16pt !important; line-height: 1.05 !important; text-align: center !important; font-weight: 800 !important; }
   .receipt .r-shop-desc          { font-size: 8pt !important; text-align: center !important; margin-bottom: 3px !important; }
   .receipt .r-shop-note          { font-size: 7.5pt !important; text-align: center !important; margin-bottom: 4px !important; line-height: 1.25 !important; }

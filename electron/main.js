@@ -125,10 +125,13 @@ ipcMain.on('print-receipt-html', (event, htmlContent) => {
   printWin.loadURL(`data:text/html;base64,${encoded}`);
 
   printWin.webContents.once('did-finish-load', async () => {
-    // Wait for fonts to finish loading so the receipt layout and monospace numbers are rendered accurately
+    // Wait for fonts and images to finish loading so the receipt layout, logo, and monospace numbers are rendered accurately
     try {
       await printWin.webContents.executeJavaScript(`
-        document.fonts.ready.then(() => new Promise(resolve => setTimeout(resolve, 150)))
+        Promise.all([
+          document.fonts ? document.fonts.ready : Promise.resolve(),
+          ...Array.from(document.images).map(img => img.complete ? Promise.resolve() : new Promise(res => { img.onload = img.onerror = res; }))
+        ]).then(() => new Promise(resolve => setTimeout(resolve, 150)))
       `);
     } catch (e) {
       await new Promise(r => setTimeout(r, 200));

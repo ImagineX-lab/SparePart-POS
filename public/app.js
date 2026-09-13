@@ -637,6 +637,10 @@ function filterHistory() {
   }).join('') : `<tr><td colspan="6" class="empty">No sales yet. Completed sales will appear here.</td></tr>`;
 }
 function showReceipt(sale, autoPrint = false) {
+  const logoSrc = settings.shop_logo
+    ? (settings.shop_logo.startsWith('/') ? esc(settings.shop_logo) : '/' + esc(settings.shop_logo))
+    : '/logo.png';
+  const logoHtml = `<img class="r-shop-logo" src="${logoSrc}" alt="Shop Logo" onerror="this.style.display='none'" />`;
   const shopDesc = settings.shop_desc ? `<div class="r-shop-desc">${esc(settings.shop_desc)}</div>` : '';
   const cur = settings.currency || 'Rs.';
   const itemsHtml = sale.items.map(i => {
@@ -650,6 +654,7 @@ function showReceipt(sale, autoPrint = false) {
   const total = fmt(sale.total);
   const html = `
     <div class="receipt invoice">
+      ${logoHtml}
       <div class="r-shop-name">${formatShopName(settings.shop_name)}</div>
       ${shopDesc}
       <div class="r-shop-note">සියලුම වර්ගයේ නවීන වාහන අමතර කොටස් සහ ආනයනය කරන ලද රීකන්ඩිශන් අමතර කොටස්</div>
@@ -853,7 +858,7 @@ function buildReceiptDocument() {
       color: #000;
     }
     .r-watermark { display: none !important; }
-    .r-shop-logo { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; }
+    .r-shop-logo { max-width: 55px !important; max-height: 55px !important; margin: 0 auto 3px !important; display: block !important; object-fit: contain !important; }
     .r-shop-name {
       text-align: center !important;
       font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif !important;
