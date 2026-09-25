@@ -16,6 +16,19 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
+// GET /api/parts/categories/list — distinct categories for the Add/Edit Part dropdown (must be before /:id)
+router.get('/categories/list', (req, res) => {
+  try {
+    const rows = db.prepare(
+      `SELECT DISTINCT category FROM parts WHERE category IS NOT NULL AND category != '' ORDER BY category`
+    ).all();
+    res.json(rows.map(r => r.category));
+  } catch (e) {
+    console.error('Error fetching categories:', e);
+    res.status(500).json({ error: 'Could not fetch categories' });
+  }
+});
+
 router.get('/:id', (req, res) => {
   try {
     const row = db.prepare('SELECT * FROM parts WHERE id = ?').get(req.params.id);
@@ -105,19 +118,6 @@ router.delete('/:id', (req, res) => {
   } catch (e) {
     console.error('Error deleting part:', e);
     res.status(500).json({ error: `Could not delete part: ${e.message}` });
-  }
-});
-
-// GET /api/parts/categories/list — distinct categories for the Add/Edit Part dropdown
-router.get('/categories/list', (req, res) => {
-  try {
-    const rows = db.prepare(
-      `SELECT DISTINCT category FROM parts WHERE category IS NOT NULL AND category != '' ORDER BY category`
-    ).all();
-    res.json(rows.map(r => r.category));
-  } catch (e) {
-    console.error('Error fetching categories:', e);
-    res.status(500).json({ error: 'Could not fetch categories' });
   }
 });
 

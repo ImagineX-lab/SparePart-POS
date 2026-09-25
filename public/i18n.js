@@ -63,6 +63,7 @@ const i18nDict = {
     hist_items: "Items",
     hist_payment: "Payment",
     hist_total: "Total",
+    hist_clearAll: "Clear all history",
     
 
     // Settings
@@ -170,6 +171,7 @@ const i18nDict = {
     hist_items: "ඒවා ගාණ",
     hist_payment: "ගෙව්ව ක්‍රමය",
     hist_total: "මුළු මුදල",
+    hist_clearAll: "සියලු බිල් මකන්න",
 
     set_title: "සකසන්න",
     set_shopName: "ෂොප් නම",

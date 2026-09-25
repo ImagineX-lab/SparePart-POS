@@ -247,10 +247,14 @@ async function renderDashboard() {
 function renderCategoryOptions() {
   const cats = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
   const sel = document.getElementById('posCategoryFilter');
+  if (!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">' + t('pos_allCat') + '</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  sel.value = cur;
-  document.getElementById('catList').innerHTML = cats.map(c => `<option value="${esc(c)}">`).join('');
+  sel.innerHTML = '<option value="">' + (typeof t === 'function' ? t('pos_allCat') : 'All categories') + '</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  if (cats.includes(cur)) {
+    sel.value = cur;
+  } else {
+    sel.value = '';
+  }
 }
 
 async function renderPOS() {
@@ -260,11 +264,12 @@ async function renderPOS() {
   renderCart();
 }
 function renderPosGrid() {
-  const q = document.getElementById('posSearch').value.trim().toLowerCase();
-  const cat = document.getElementById('posCategoryFilter').value;
+  const q = (document.getElementById('posSearch')?.value || '').trim().toLowerCase();
+  const cat = document.getElementById('posCategoryFilter')?.value || '';
   const grid = document.getElementById('posGrid');
+  if (!grid) return;
   const list = partsCache.filter(p => {
-    const matchQ = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
+    const matchQ = !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q));
     const matchC = !cat || p.category === cat;
     return matchQ && matchC;
   });
@@ -280,9 +285,9 @@ function renderPosGrid() {
       <div class="sku mono">${esc(p.sku)}</div>
       <div class="name">${esc(p.name)}</div>
       <div class="price">${fmt(p.price)}</div>
-      <div class="stockline ${zone}">${p.stock <= 0 ? 'Out of stock' : p.stock + ' in stock'}</div>
+      <div class="stockline ${zone}">${p.stock <= 0 ? (typeof t === 'function' && currentLang === 'si' ? 'ස්ටොක් ඉවරයි' : 'Out of stock') : p.stock + ' ' + (typeof t === 'function' ? t('gen_units') : 'units')}</div>
     </div>`;
-  }).join('') : `<div class="empty">No parts match your search.</div>`;
+  }).join('') : `<div class="empty">${typeof t === 'function' && currentLang === 'si' ? 'සොයන කොටස් කිසිවක් හමු නොවීය.' : 'No parts match your search.'}</div>`;
 }
 function addToCart(partId) {
   const part = partsCache.find(p => p.id === partId);
@@ -389,11 +394,45 @@ async function checkout() {
   }
 }
 
+/* ---------- APP CONFIRM MODAL (Prevents Electron/Browser Window Freeze) ---------- */
+function appConfirm(message, title = '', okText = '', cancelText = '') {
+  return new Promise((resolve) => {
+    const modalBg = document.getElementById('confirmDialogModalBg');
+    const msgEl = document.getElementById('confirmDialogMessage');
+    const titleEl = document.getElementById('confirmDialogTitle');
+    const okBtn = document.getElementById('btnConfirmOk');
+    const cancelBtn = document.getElementById('btnConfirmCancel');
+
+    const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+    if (titleEl) titleEl.textContent = title || (isSi ? 'තහවුරු කිරීම' : 'Confirm Action');
+    if (msgEl) msgEl.textContent = message;
+    if (okBtn) okBtn.textContent = okText || (isSi ? 'මකන්න' : 'Delete');
+    if (cancelBtn) cancelBtn.textContent = cancelText || (isSi ? 'අවලංගු කරන්න' : 'Cancel');
+
+    const cleanup = (result) => {
+      if (modalBg) modalBg.classList.remove('show');
+      if (okBtn) okBtn.onclick = null;
+      if (cancelBtn) cancelBtn.onclick = null;
+      resolve(result);
+    };
+
+    if (okBtn) okBtn.onclick = () => cleanup(true);
+    if (cancelBtn) cancelBtn.onclick = () => cleanup(false);
+    if (modalBg) modalBg.classList.add('show');
+    else resolve(true);
+  });
+}
+
 async function restoreBackup(event) {
   const file = event.target.files[0];
   if (!file) return;
-  if (!confirm("මෙමගින් වත්මන් දත්ත අලුත් දත්ත වලින් වෙනස් වේ. ඉදිරියට යන්නේද?")) {
-    event.target.value = "";
+  const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+  const confirmMsg = isSi
+    ? 'මෙමගින් වත්මන් දත්ත අලුත් දත්ත වලින් වෙනස් වේ. ඉදිරියට යන්නේද?'
+    : 'This will overwrite current shop data with the backup. Continue?';
+  const confirmed = await appConfirm(confirmMsg, isSi ? 'දත්ත Restore කිරීම' : 'Restore Backup', isSi ? 'ඔව්, Restore කරන්න' : 'Restore', isSi ? 'නැත' : 'Cancel');
+  if (!confirmed) {
+    event.target.value = '';
     return;
   }
   const formData = new FormData();
@@ -405,15 +444,15 @@ async function restoreBackup(event) {
     });
     const data = await res.json();
     if (res.ok && data.success) {
-      alert("දත්ත සාර්ථකව යථා තත්ත්වයට පත් කරන ලදී!");
-      location.reload();
+      showToast(isSi ? 'දත්ත සාර්ථකව යථා තත්ත්වයට පත් කරන ලදී!' : 'Backup restored successfully!');
+      setTimeout(() => location.reload(), 800);
     } else {
       showToast(data.error || 'Restore failed');
     }
   } catch (e) {
     showToast(e.message);
   } finally {
-    event.target.value = "";
+    event.target.value = '';
   }
 }
 
@@ -423,9 +462,10 @@ async function renderInventory() {
   filterInventory();
 }
 function filterInventory() {
-  const q = document.getElementById('invSearch').value.trim().toLowerCase();
+  const q = (document.getElementById('invSearch')?.value || '').trim().toLowerCase();
   const body = document.getElementById('invBody');
-  const list = partsCache.filter(p => !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+  if (!body) return;
+  const list = partsCache.filter(p => !q || (p.name && p.name.toLowerCase().includes(q)) || (p.sku && p.sku.toLowerCase().includes(q)) || (p.category && p.category.toLowerCase().includes(q)));
   body.innerHTML = list.length ? list.map(p => `
     <tr>
       <td>${esc(p.name)}</td>
@@ -437,68 +477,162 @@ function filterInventory() {
       <td>${p.image_path ? `<img src="/${esc(p.image_path)}" class="part-thumb"/>` : ''}</td>
       <td>
         <div class="btn-stack">
-          <button class="btn btn-sm" onclick="openPartModal(${p.id})">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="deletePart(${p.id})">Delete</button>
+          <button class="btn btn-sm" onclick="openPartModal(${p.id})">${typeof t === 'function' ? t('gen_edit') : 'Edit'}</button>
+          <button class="btn btn-sm btn-danger" onclick="deletePart(${p.id})">${typeof t === 'function' ? t('gen_delete') : 'Delete'}</button>
         </div>
       </td>
     </tr>
-  `).join('') : `<tr><td colspan="9" class="empty">No parts found. Add your first part to get started.</td></tr>`;
+  `).join('') : `<tr><td colspan="8" class="empty">${typeof t === 'function' && currentLang === 'si' ? 'අමතර කොටස් කිසිවක් හමු නොවීය. ආරම්භ කිරීමට ඔබගේ පළමු කොටස එක් කරන්න.' : 'No parts found. Add your first part to get started.'}</td></tr>`;
 }
 
-function openPartModal(id) {
+async function populateCategorySelect() {
+  let categories = [];
+  try {
+    categories = await api('/parts/categories/list');
+  } catch (e) {
+    categories = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
+  }
+  const sel = document.getElementById('partCategorySelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="" disabled selected>-- Select category --</option>'
+    + categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
+    + `<option value="__new__">+ Add new category…</option>`;
+}
+
+function setCategorySelectValue(category) {
+  const sel = document.getElementById('partCategorySelect');
+  if (!sel) return;
+  const exists = Array.from(sel.options).some(o => o.value === category);
+  const newRow = document.getElementById('newCategoryRow');
+  if (exists && category) {
+    sel.value = category;
+    if (newRow) newRow.style.display = 'none';
+  } else if (category) {
+    sel.value = '__new__';
+    if (newRow) newRow.style.display = 'block';
+    const newCatInput = document.getElementById('partCategoryNew');
+    if (newCatInput) newCatInput.value = category;
+  } else {
+    sel.selectedIndex = 0;
+    if (newRow) newRow.style.display = 'none';
+  }
+}
+
+function onCategorySelectChange() {
+  const sel = document.getElementById('partCategorySelect');
+  const newRow = document.getElementById('newCategoryRow');
+  if (sel && newRow) {
+    newRow.style.display = sel.value === '__new__' ? 'block' : 'none';
+  }
+}
+
+function getSelectedCategory() {
+  const sel = document.getElementById('partCategorySelect');
+  if (!sel) return 'Other';
+  if (sel.value === '__new__') {
+    const newCatInput = document.getElementById('partCategoryNew');
+    return newCatInput ? newCatInput.value.trim() : 'Other';
+  }
+  return sel.value || 'Other';
+}
+
+async function openPartModal(id) {
   document.getElementById('partId').value = id || '';
-  document.getElementById('partModalTitle').textContent = id ? 'Edit Part' : 'Add Part';
+  const modalTitle = document.getElementById('partModalTitle');
+  if (modalTitle) {
+    modalTitle.textContent = id ? (typeof t === 'function' ? t('modal_editPart') : 'Edit Part') : (typeof t === 'function' ? t('modal_addPart') : 'Add Part');
+  }
+  const delBtn = document.getElementById('btnDeletePartModal');
+  if (delBtn) delBtn.style.display = id ? 'inline-block' : 'none';
+
+  await populateCategorySelect();
   if (id) {
     const p = partsCache.find(x => x.id === id);
-    document.getElementById('partName').value = p.name;
-    document.getElementById('partSku').value = p.sku;
-    document.getElementById('partCategory').value = p.category || '';
-    document.getElementById('partCost').value = p.cost;
-    document.getElementById('partPrice').value = p.price;
-    document.getElementById('partStock').value = p.stock;
-    document.getElementById('partThreshold').value = p.threshold;
-    // Clear image input for fresh upload
-    document.getElementById('partImage').value = '';
+    if (p) {
+      document.getElementById('partName').value = p.name || '';
+      document.getElementById('partSku').value = p.sku || '';
+      setCategorySelectValue(p.category || '');
+      document.getElementById('partCost').value = p.cost ?? 0;
+      document.getElementById('partPrice').value = p.price ?? 0;
+      document.getElementById('partStock').value = p.stock ?? 0;
+      document.getElementById('partThreshold').value = p.threshold ?? 0;
+    }
+    const imgEl = document.getElementById('partImage');
+    if (imgEl) imgEl.value = '';
   } else {
-    ['partName', 'partSku', 'partCategory', 'partCost', 'partPrice', 'partStock', 'partThreshold', 'partImage'].forEach(i => document.getElementById(i).value = '');
+    ['partName', 'partSku', 'partCost', 'partPrice', 'partStock', 'partThreshold', 'partImage']
+      .forEach(i => { const el = document.getElementById(i); if (el) el.value = ''; });
     document.getElementById('partThreshold').value = 5;
+    const catSel = document.getElementById('partCategorySelect');
+    if (catSel) catSel.selectedIndex = 0;
+    const newRow = document.getElementById('newCategoryRow');
+    if (newRow) newRow.style.display = 'none';
+    const newCatInput = document.getElementById('partCategoryNew');
+    if (newCatInput) newCatInput.value = '';
   }
-  renderCategoryOptions();
   openModal('partModalBg');
+}
+
+function deletePartFromModal() {
+  const id = document.getElementById('partId').value;
+  if (id) deletePart(Number(id));
 }
 
 async function savePart() {
   const id = document.getElementById('partId').value;
   const formData = new FormData();
-  formData.append('name', document.getElementById('partName').value.trim());
-  formData.append('sku', document.getElementById('partSku').value.trim());
-  formData.append('category', document.getElementById('partCategory').value.trim() || 'Other');
-  formData.append('cost', document.getElementById('partCost').value || 0);
-  formData.append('price', document.getElementById('partPrice').value || 0);
-  formData.append('stock', document.getElementById('partStock').value || 0);
-  formData.append('threshold', document.getElementById('partThreshold').value || 0);
-  const imgFile = document.getElementById('partImage').files[0];
+  formData.append('name', (document.getElementById('partName')?.value || '').trim());
+  formData.append('sku', (document.getElementById('partSku')?.value || '').trim());
+  formData.append('category', getSelectedCategory() || 'Other');
+  formData.append('cost', document.getElementById('partCost')?.value || 0);
+  formData.append('price', document.getElementById('partPrice')?.value || 0);
+  formData.append('stock', document.getElementById('partStock')?.value || 0);
+  formData.append('threshold', document.getElementById('partThreshold')?.value || 0);
+  const imgFile = document.getElementById('partImage')?.files?.[0];
   if (imgFile) formData.append('image', imgFile);
-  if (!formData.get('name') || !formData.get('sku')) { showToast('Part name and SKU are required.'); return; }
+  if (!formData.get('name') || !formData.get('sku')) {
+    showToast(typeof currentLang !== 'undefined' && currentLang === 'si' ? 'Part නම සහ SKU ඇතුළත් කිරීම අනිවාර්යයි.' : 'Part name and SKU are required.');
+    return;
+  }
+  const saveBtn = document.getElementById('btnSavePart');
+  if (saveBtn) saveBtn.disabled = true;
   try {
     if (id) await apiFormData('/parts/' + id, { method: 'PUT', body: formData });
     else await apiFormData('/parts', { method: 'POST', body: formData });
     closeModal('partModalBg');
+    document.getElementById('partId').value = '';
+    await refreshParts();
     await renderInventory();
-    showToast('Part saved.');
-  } catch (e) { showToast(e.message); }
+    renderPosGrid();
+    renderCategoryOptions();
+    renderCart();
+    showToast(typeof currentLang !== 'undefined' && currentLang === 'si' ? 'Part සුරකින ලදී.' : 'Part saved.');
+  } catch (e) {
+    showToast(e.message);
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+  }
 }
 
 async function deletePart(id) {
-  if (!confirm('Delete this part? This cannot be undone.')) return;
+  const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+  const confirmMsg = isSi
+    ? 'මෙම අමතර කොටස මකා දැමීමට අවශ්‍ය බව තහවුරුද? මෙම ක්‍රියාව නැවත හැරවිය නොහැක.'
+    : 'Delete this part? This cannot be undone.';
+  const confirmed = await appConfirm(confirmMsg, isSi ? 'Part එක මකා දැමීම' : 'Delete Part', isSi ? 'ඔව්, මකන්න' : 'Yes, Delete', isSi ? 'නැත' : 'Cancel');
+  if (!confirmed) return;
   try {
     await api('/parts/' + id, { method: 'DELETE' });
     // Remove deleted item from cart if present
-    cart = cart.filter(c => c.partId !== id);
+    cart = cart.filter(c => Number(c.partId) !== Number(id));
+    // Reset modal form state and close modal
+    const partIdInput = document.getElementById('partId');
+    if (partIdInput) partIdInput.value = '';
+    closeModal('partModalBg');
     // Refresh cached parts and low-stock badge
     await refreshParts();
     // Update inventory table
-    filterInventory();
+    await renderInventory();
     // Update POS grid and category filter
     renderPosGrid();
     renderCategoryOptions();
@@ -511,105 +645,10 @@ async function deletePart(id) {
     if (dashView && dashView.classList.contains('active')) {
       await renderDashboard();
     }
-    showToast('Part deleted successfully.');
+    showToast(isSi ? 'අමතර කොටස සාර්ථකව මකා දමන ලදී.' : 'Part deleted successfully.');
   } catch (e) {
     showToast(e.message);
   }
-}
-
-async function populateCategorySelect() {
-  let categories = [];
-  try {
-    categories = await api('/parts/categories/list');
-  } catch (e) {
-    categories = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
-  }
-  const sel = document.getElementById('partCategorySelect');
-  sel.innerHTML = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('')
-    + `<option value="__new__">+ Add new category…</option>`;
-}
-
-function setCategorySelectValue(category) {
-  const sel = document.getElementById('partCategorySelect');
-  const exists = Array.from(sel.options).some(o => o.value === category);
-  const newRow = document.getElementById('newCategoryRow');
-  if (exists) {
-    sel.value = category;
-    newRow.style.display = 'none';
-  } else {
-    sel.value = '__new__';
-    newRow.style.display = 'block';
-    document.getElementById('partCategoryNew').value = category;
-  }
-}
-
-function onCategorySelectChange() {
-  const sel = document.getElementById('partCategorySelect');
-  document.getElementById('newCategoryRow').style.display = sel.value === '__new__' ? 'block' : 'none';
-}
-
-function getSelectedCategory() {
-  const sel = document.getElementById('partCategorySelect');
-  if (sel.value === '__new__') {
-    return document.getElementById('partCategoryNew').value.trim();
-  }
-  return sel.value;
-}
-
-async function openPartModal(id) {
-  document.getElementById('partId').value = id || '';
-  document.getElementById('partModalTitle').textContent = id ? 'Edit Part' : 'Add Part';
-  await populateCategorySelect();
-  if (id) {
-    const p = partsCache.find(x => x.id === id);
-    document.getElementById('partName').value = p.name;
-    document.getElementById('partSku').value = p.sku;
-    setCategorySelectValue(p.category || '');
-    document.getElementById('partCost').value = p.cost;
-    document.getElementById('partPrice').value = p.price;
-    document.getElementById('partStock').value = p.stock;
-    document.getElementById('partThreshold').value = p.threshold;
-    document.getElementById('partImage').value = '';
-  } else {
-    ['partName', 'partSku', 'partCost', 'partPrice', 'partStock', 'partThreshold', 'partImage']
-      .forEach(i => document.getElementById(i).value = '');
-    document.getElementById('partThreshold').value = 5;
-    document.getElementById('partCategorySelect').value = '';
-    document.getElementById('newCategoryRow').style.display = 'none';
-    document.getElementById('partCategoryNew').value = '';
-  }
-  openModal('partModalBg');
-}
-
-async function savePart() {
-  const id = document.getElementById('partId').value;
-  const formData = new FormData();
-  formData.append('name', document.getElementById('partName').value.trim());
-  formData.append('sku', document.getElementById('partSku').value.trim());
-  formData.append('category', getSelectedCategory() || 'Other');
-  formData.append('cost', document.getElementById('partCost').value || 0);
-  formData.append('price', document.getElementById('partPrice').value || 0);
-  formData.append('stock', document.getElementById('partStock').value || 0);
-  formData.append('threshold', document.getElementById('partThreshold').value || 0);
-  const imgFile = document.getElementById('partImage').files[0];
-  if (imgFile) formData.append('image', imgFile);
-  if (!formData.get('name') || !formData.get('sku')) { showToast('Part name and SKU are required.'); return; }
-  try {
-    if (id) await apiFormData('/parts/' + id, { method: 'PUT', body: formData });
-    else await apiFormData('/parts', { method: 'POST', body: formData });
-    closeModal('partModalBg');
-    await renderInventory();
-    showToast('Part saved.');
-  } catch (e) { showToast(e.message); }
-}
-
-function renderCategoryOptions() {
-  const cats = [...new Set(partsCache.map(p => p.category).filter(Boolean))].sort();
-  const sel = document.getElementById('posCategoryFilter');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">' + t('pos_allCat') + '</option>'
-    + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  sel.value = cur;
 }
 
 /* ---------- HISTORY ---------- */
@@ -623,7 +662,8 @@ function filterHistory() {
   const body = document.getElementById('histBody');
   const list = salesCache.filter(s => {
     if (!q) return true;
-    return String(s.id).includes(q) || itemsText.includes(q);
+    const itemsText = (s.items || []).map(i => (i.name || '') + ' ' + (i.sku || '')).join(' ').toLowerCase();
+    return String(s.id).includes(q) || itemsText.includes(q) || (s.payment_method || '').toLowerCase().includes(q);
   });
   body.innerHTML = list.length ? list.map(s => {
     return `<tr>
@@ -632,9 +672,54 @@ function filterHistory() {
       <td>${s.items.reduce((a, i) => a + i.qty, 0)} items</td>
       <td>${esc(s.payment_method)}</td>
       <td class="mono">${fmt(s.total)}</td>
-      <td><button class="btn btn-sm" onclick='showReceipt(${JSON.stringify(s).replace(/'/g, "&#39;")})'>View</button></td>
+      <td>
+        <div style="display:flex; gap:6px; justify-content:flex-end;">
+          <button class="btn btn-sm" onclick='showReceipt(${JSON.stringify(s).replace(/'/g, "&#39;")})'>${typeof t === 'function' ? t('modal_close') === 'වසන්න' ? 'බලන්න' : 'View' : 'View'}</button>
+          <button class="btn btn-sm btn-danger" onclick='deleteSale(${s.id})'>${typeof t === 'function' ? t('gen_delete') : 'Delete'}</button>
+        </div>
+      </td>
     </tr>`;
   }).join('') : `<tr><td colspan="6" class="empty">No sales yet. Completed sales will appear here.</td></tr>`;
+}
+
+async function deleteSale(id) {
+  const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+  const confirmMsg = isSi
+    ? `#${String(id).padStart(4, '0')} දරන බිල්පත මකා දැමීමට අවශ්‍ය බව තහවුරුද?`
+    : `Delete receipt #${String(id).padStart(4, '0')}? This cannot be undone.`;
+  const confirmed = await appConfirm(confirmMsg, isSi ? 'බිල්පත මකා දැමීම' : 'Delete Receipt', isSi ? 'ඔව්, මකන්න' : 'Yes, Delete', isSi ? 'නැත' : 'Cancel');
+  if (!confirmed) return;
+  try {
+    await api('/sales/' + id, { method: 'DELETE' });
+    showToast(isSi ? 'බිල්පත මකා දමන ලදී.' : 'Receipt deleted.');
+    await renderHistory();
+    const dashView = document.getElementById('view-dashboard');
+    if (dashView && dashView.classList.contains('active')) {
+      await renderDashboard();
+    }
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function clearAllSalesHistory() {
+  const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+  const confirmMsg = isSi
+    ? 'අවධානයයි: සියලුම විකුණුම් / බිල්පත් ඉතිහාසය සදහටම මකා දැමීමට අවශ්‍ය බව තහවුරුද?'
+    : 'Are you sure you want to delete ALL sales history? This cannot be undone.';
+  const confirmed = await appConfirm(confirmMsg, isSi ? 'සියලු බිල්පත් මකා දැමීම' : 'Clear All Sales', isSi ? 'ඔව්, මකා දමන්න' : 'Yes, Clear All', isSi ? 'නැත' : 'Cancel');
+  if (!confirmed) return;
+  try {
+    await api('/sales', { method: 'DELETE' });
+    showToast(isSi ? 'සියලු බිල්පත් ඉතිහාසය මකා දමන ලදී.' : 'All sales history cleared.');
+    await renderHistory();
+    const dashView = document.getElementById('view-dashboard');
+    if (dashView && dashView.classList.contains('active')) {
+      await renderDashboard();
+    }
+  } catch (e) {
+    showToast(e.message);
+  }
 }
 function showReceipt(sale, autoPrint = false) {
   const logoSrc = settings.shop_logo
@@ -765,12 +850,15 @@ async function saveSettings() {
   updateShopUI();
 }
 async function resetAllData() {
-  if (!confirm("අවධානයයි: මෙමගින් පද්ධතියේ ඇති සියලුම අයිතම (Parts) සහ අලෙවි වාර්තා (Sales) සදහටම මකා දැමෙයි.\n\nඔබට දත්ත නැවත සැකසීමට (Reset) අවශ්‍ය බව තහවුරුද?")) {
-    return;
-  }
+  const isSi = typeof currentLang !== 'undefined' && currentLang === 'si';
+  const confirmMsg = isSi
+    ? 'අවධානයයි: මෙමගින් පද්ධතියේ ඇති සියලුම අයිතම (Parts) සහ අලෙවි වාර්තා (Sales) සදහටම මකා දැමෙයි. ඉදිරියට යන්නේද?'
+    : 'This will permanently erase all parts and sales on the server. Continue?';
+  const confirmed = await appConfirm(confirmMsg, isSi ? 'දත්ත Reset කිරීම' : 'Reset All Data', isSi ? 'ඔව්, Reset කරන්න' : 'Reset All Data', isSi ? 'නැත' : 'Cancel');
+  if (!confirmed) return;
   try {
     await api('/reset', { method: 'POST' });
-    showToast('All data has been reset.');
+    showToast(isSi ? 'සියලු දත්ත reset කරන ලදී.' : 'All data has been reset.');
     await switchView('dashboard');
   } catch (e) {
     showToast(e.message || 'Reset failed');

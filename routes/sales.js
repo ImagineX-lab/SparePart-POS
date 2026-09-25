@@ -80,4 +80,41 @@ router.post('/', (req, res) => {
   }
 });
 
+// Delete a single sale by ID
+router.delete('/:id', (req, res) => {
+  try {
+    const sale = db.prepare('SELECT * FROM sales WHERE id = ?').get(req.params.id);
+    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+
+    db.exec('BEGIN');
+    try {
+      db.prepare('DELETE FROM sale_items WHERE sale_id = ?').run(req.params.id);
+      db.prepare('DELETE FROM sales WHERE id = ?').run(req.params.id);
+      db.exec('COMMIT');
+      res.status(204).end();
+    } catch (err) {
+      db.exec('ROLLBACK');
+      throw err;
+    }
+  } catch (e) {
+    console.error('Error deleting sale:', e);
+    res.status(500).json({ error: `Could not delete sale: ${e.message}` });
+  }
+});
+
+// Delete all sales history
+router.delete('/', (req, res) => {
+  try {
+    db.exec(`
+      DELETE FROM sale_items;
+      DELETE FROM sales;
+      DELETE FROM sqlite_sequence WHERE name IN ('sales', 'sale_items');
+    `);
+    res.status(204).end();
+  } catch (e) {
+    console.error('Error clearing sales history:', e);
+    res.status(500).json({ error: `Could not clear sales history: ${e.message}` });
+  }
+});
+
 module.exports = router;

@@ -159,7 +159,10 @@
 
         <div class="view" id="view-history">
           <div class="panel">
-            <h2 data-i18n="hist_title">Sales history</h2>
+            <h2>
+              <span data-i18n="hist_title">Sales history</span>
+              <button class="btn btn-danger btn-sm" onclick="clearAllSalesHistory()" data-i18n="hist_clearAll">Clear all history</button>
+            </h2>
             <div class="searchbar"><input id="histSearch" placeholder="Search by receipt # or part..."
                 data-i18n="hist_search"></div>
             <table>
@@ -170,7 +173,7 @@
                   <th data-i18n="hist_items">Items</th>
                   <th data-i18n="hist_payment">Payment</th>
                   <th data-i18n="hist_total">Total</th>
-                  <th></th>
+                  <th style="text-align:right;"></th>
                 </tr>
               </thead>
               <tbody id="histBody"></tbody>
@@ -270,14 +273,16 @@
         <div class="field"><label data-i18n="modal_threshold">Low stock threshold</label><input id="partThreshold"
             type="number" min="0" step="1"></div>
       </div>
-      <div class="modal-actions">
-        <div class="field">
+      <div class="modal-actions" style="display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+        <div class="field" style="margin-bottom:0; flex:1; min-width:140px;">
           <label data-i18n="modal_image">Image</label>
           <input type="file" id="partImage" accept="image/*">
         </div>
-        <button class="btn" onclick="closeModal('partModalBg')" data-i18n="modal_cancel">Cancel</button>
-        <button class="btn btn-accent" onclick="savePart()" id="btnSavePart" data-i18n="modal_savePart">Save
-          part</button>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn btn-danger" id="btnDeletePartModal" style="display:none;" onclick="deletePartFromModal()" data-i18n="gen_delete">Delete</button>
+          <button class="btn" onclick="closeModal('partModalBg')" data-i18n="modal_cancel">Cancel</button>
+          <button class="btn btn-accent" onclick="savePart()" id="btnSavePart" data-i18n="modal_savePart">Save part</button>
+        </div>
       </div>
     </div>
   </div>
@@ -309,6 +314,19 @@
     </div>
   </div>
 
+
+  <!-- App Confirmation Modal (eliminates Electron window.confirm freezing) -->
+  <div class="modal-bg" id="confirmDialogModalBg" style="z-index: 10000;">
+    <div class="modal" style="max-width:380px; text-align:center; padding:24px 20px;">
+      <div style="font-size:2rem; margin-bottom:10px;">⚠️</div>
+      <h3 id="confirmDialogTitle" style="margin-bottom:10px; font-size:1.2rem;">Confirm Action</h3>
+      <p id="confirmDialogMessage" style="color:var(--ink-soft); font-size:0.95rem; margin-bottom:20px; line-height:1.4;"></p>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button class="btn" id="btnConfirmCancel" style="flex:1;">Cancel</button>
+        <button class="btn btn-danger" id="btnConfirmOk" style="flex:1;">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 
