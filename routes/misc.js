@@ -41,12 +41,29 @@ router.put('/settings', upload.single('logo'), (req, res) => {
 });
 
 router.get('/dashboard', (req, res) => {
-  const parts = db.prepare('SELECT * FROM parts').all();
   const today = new Date().toISOString().slice(0, 10);
-  const todaySales = db.prepare(`SELECT * FROM sales WHERE date LIKE ?`).all(today + '%');
-  const revenueToday = todaySales.reduce((a, s) => a + s.total, 0);
-  const invValue = parts.reduce((a, p) => a + p.stock * p.cost, 0);
-  const lowStock = parts.filter(p => p.stock <= p.threshold);
+
+  // Single aggregated query for today's sales stats — no full table scan in JS
+  const todayStats = db.prepare(`
+    SELECT COUNT(*) AS salesToday, COALESCE(SUM(total), 0) AS revenueToday
+    FROM sales WHERE date >= ? AND date < date(?, '+1 day')
+  `).get(today, today);
+
+  // Aggregate inventory stats in SQL — no need to load every part into JS
+  const invStats = db.prepare(`
+    SELECT
+      COUNT(*) AS partsCount,
+      COALESCE(SUM(stock * cost), 0) AS inventoryValue,
+      COUNT(CASE WHEN stock <= threshold THEN 1 END) AS lowStockCount
+    FROM parts
+  `).get();
+
+  // Only fetch low-stock parts (not ALL parts)
+  const lowStock = db.prepare(`
+    SELECT id, name, sku, category, stock, threshold, image_path
+    FROM parts WHERE stock <= threshold
+    ORDER BY stock ASC
+  `).all();
 
   const topRows = db.prepare(`
     SELECT part_id, name, sku, SUM(qty) AS qty, SUM(qty * price) AS revenue
@@ -58,11 +75,11 @@ router.get('/dashboard', (req, res) => {
   `).all();
 
   res.json({
-    revenueToday,
-    salesToday: todaySales.length,
-    partsCount: parts.length,
-    lowStockCount: lowStock.length,
-    inventoryValue: invValue,
+    revenueToday: todayStats.revenueToday,
+    salesToday: todayStats.salesToday,
+    partsCount: invStats.partsCount,
+    lowStockCount: invStats.lowStockCount,
+    inventoryValue: invStats.inventoryValue,
     lowStock,
     topSelling: topRows
   });

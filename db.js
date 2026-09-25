@@ -17,15 +17,20 @@ if (process.versions && process.versions.electron) {
 
 const DB_PATH = path.join(dataDir, 'shop.db');
 const db = new DatabaseSync(DB_PATH);
-// Enable Write-Ahead Logging to reduce locking issues and enable foreign keys
-db.exec('PRAGMA journal_mode=WAL;');
-db.exec('PRAGMA foreign_keys = ON;');
+// Enable Write-Ahead Logging and performance pragmas
+db.exec(`
+  PRAGMA journal_mode = WAL;
+  PRAGMA synchronous = NORMAL;
+  PRAGMA temp_store = MEMORY;
+  PRAGMA cache_size = -64000;
+  PRAGMA mmap_size = 268435456;
+  PRAGMA foreign_keys = ON;
+`);
 
-
-  // Ensure data/images directory exists for storing uploaded images
-  const fs = require('fs');
-  const imagesDir = path.join(dataDir, 'data', 'images');
-  if (!fs.existsSync(imagesDir)) { fs.mkdirSync(imagesDir, { recursive: true }); }
+// Ensure data/images directory exists for storing uploaded images
+const fs = require('fs');
+const imagesDir = path.join(dataDir, 'data', 'images');
+if (!fs.existsSync(imagesDir)) { fs.mkdirSync(imagesDir, { recursive: true }); }
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS settings (
@@ -73,6 +78,14 @@ db.exec(`
     qty INTEGER NOT NULL,
     price REAL NOT NULL
   );
+
+  -- High-performance indexes for large inventories & sales history
+  CREATE INDEX IF NOT EXISTS idx_parts_name ON parts(name);
+  CREATE INDEX IF NOT EXISTS idx_parts_category ON parts(category);
+  CREATE INDEX IF NOT EXISTS idx_parts_stock ON parts(stock, threshold);
+  CREATE INDEX IF NOT EXISTS idx_sales_date ON sales(date);
+  CREATE INDEX IF NOT EXISTS idx_sale_items_sale_id ON sale_items(sale_id);
+  CREATE INDEX IF NOT EXISTS idx_sale_items_part_id ON sale_items(part_id);
 `);
 
 // Ensure image_path column exists (ignore if already present)

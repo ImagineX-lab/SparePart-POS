@@ -32,6 +32,7 @@ async function apiFormData(path, options = {}) {
 
 /* ---------- LOCAL CACHES (kept in sync with the server) ---------- */
 let partsCache = [];
+let partsMap = new Map(); // Fast O(1) id→part lookup
 
 const DEFAULT_SHOP_NAME = 'KN Motors';
 const DEFAULT_SHOP_DESC = 'Automotive spare parts & accessories';
@@ -39,6 +40,15 @@ let settings = { shop_name: DEFAULT_SHOP_NAME, shop_desc: DEFAULT_SHOP_DESC, cur
 let cart = []; // {partId, qty}
 // track recent quantity changes to allow visual highlighting (e.g., qty decreased)
 let lastQtyChange = {}; // partId -> { delta: number, ts: epoch }
+
+/* ---------- DEBOUNCE UTILITY ---------- */
+function debounce(fn, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
 
 function markQtyChange(partId, delta) {
   lastQtyChange[partId] = { delta, ts: Date.now() };
@@ -160,7 +170,11 @@ async function switchView(id) {
 }
 
 /* ---------- DATA REFRESH ---------- */
-async function refreshParts() { partsCache = await api('/parts'); }
+async function refreshParts() {
+  partsCache = await api('/parts');
+  // Rebuild fast lookup map after every refresh
+  partsMap = new Map(partsCache.map(p => [p.id, p]));
+}
 function setLowStockBadge(count) {
   const el = document.getElementById('topNotifCount');
   if (!el) return;
@@ -290,7 +304,7 @@ function renderPosGrid() {
   }).join('') : `<div class="empty">${typeof t === 'function' && currentLang === 'si' ? 'සොයන කොටස් කිසිවක් හමු නොවීය.' : 'No parts match your search.'}</div>`;
 }
 function addToCart(partId) {
-  const part = partsCache.find(p => p.id === partId);
+  const part = partsMap.get(partId);
   if (!part || part.stock <= 0) return;
   const line = cart.find(c => c.partId === partId);
   const currentQty = line ? line.qty : 0;
@@ -301,7 +315,7 @@ function addToCart(partId) {
 function changeQty(partId, delta) {
   const line = cart.find(c => c.partId === partId);
   if (!line) return;
-  const part = partsCache.find(p => p.id === partId);
+  const part = partsMap.get(partId);
   const newQty = line.qty + delta;
   if (newQty <= 0) { cart = cart.filter(c => c.partId !== partId); }
   else if (newQty > part.stock) { showToast('Not enough stock available.'); return; }
@@ -319,17 +333,17 @@ function clearCart() {
   renderCart();
 }
 function cartTotals() {
+  // O(1) map lookup instead of O(n) find for each cart line
   const subtotal = cart.reduce((a, c) => {
-    const p = partsCache.find(x => x.id === c.partId);
+    const p = partsMap.get(c.partId);
     return a + (p ? p.price * c.qty : 0);
   }, 0);
-  // Subtotal IS the total now — no discount/tax math, nothing sent to the backend for them.
   return { subtotal, discount: 0, tax: 0, total: subtotal };
 }
 function renderCart() {
   const box = document.getElementById('cartItems');
   box.innerHTML = cart.length ? cart.map(c => {
-    const p = partsCache.find(x => x.id === c.partId);
+    const p = partsMap.get(c.partId); // O(1) lookup
     if (!p) return '';
     const ch = lastQtyChange[p.id];
     const decClass = ch && ch.delta < 0 && (Date.now() - ch.ts < 1200) ? 'qty-decreased' : '';
@@ -1206,12 +1220,17 @@ function tickClock() {
 
 /* ---------- EVENTS ---------- */
 function bindEvents() {
-  document.getElementById('posSearch').addEventListener('input', renderPosGrid);
+  // Debounced search: waits for typing to pause before re-rendering (major perf win with large catalogs)
+  const debouncedPosSearch = debounce(renderPosGrid, 120);
+  const debouncedInvSearch = debounce(filterInventory, 120);
+  const debouncedHistSearch = debounce(filterHistory, 120);
+
+  document.getElementById('posSearch').addEventListener('input', debouncedPosSearch);
   document.getElementById('posCategoryFilter').addEventListener('change', renderPosGrid);
   document.getElementById('payMethod').addEventListener('change', updateChange);
   document.getElementById('cashReceived').addEventListener('input', updateChange);
-  document.getElementById('invSearch').addEventListener('input', filterInventory);
-  document.getElementById('histSearch').addEventListener('input', filterHistory);
+  document.getElementById('invSearch').addEventListener('input', debouncedInvSearch);
+  document.getElementById('histSearch').addEventListener('input', debouncedHistSearch);
   document.querySelectorAll('.modal-bg').forEach(bg => {
     bg.addEventListener('click', (e) => { if (e.target === bg) bg.classList.remove('show'); });
   });

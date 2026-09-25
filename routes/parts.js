@@ -12,7 +12,10 @@ if (process.versions && process.versions.electron) {
 const upload = multer({ dest: path.join(dataDir, 'data', 'images') });
 
 router.get('/', (req, res) => {
-  const rows = db.prepare('SELECT * FROM parts ORDER BY name').all();
+  // Select only the columns the frontend actually uses — keeps payload small for large inventories
+  const rows = db.prepare(
+    'SELECT id, name, sku, category, cost, price, stock, threshold, image_path FROM parts ORDER BY name'
+  ).all();
   res.json(rows);
 });
 
